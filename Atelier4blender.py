@@ -10,8 +10,8 @@ bl_info = {
     "blender": (2, 72, 0),
     "description": "Atelier 4 Blender",
     "warning": "This addon is still in development.",
-    "wiki_url": "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=712",
-    "tracker_url": "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=712",
+    "wiki_url": "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=1524",
+    "tracker_url": "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=1524",
     "category": "User Interface"}
     
 import bpy
