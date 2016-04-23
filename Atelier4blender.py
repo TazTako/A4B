@@ -5,7 +5,7 @@
 
 bl_info = {
     "name": "Atelier 4 Blender (A4B)",
-    "author": "TazTako (Olivier FAVRE), Lapineige (Benoit MAUBE), Pitiwazou (Cedric LEPILLER), Matpi",
+    "author": "TazTako (Olivier FAVRE), Lapineige, Pitiwazou (Cedric LEPILLER), Matpi",
     "version": (1, 0 , 0),
     "blender": (2, 72, 0),
     "description": "Atelier 4 Blender",
