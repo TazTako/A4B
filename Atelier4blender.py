@@ -6,7 +6,7 @@
 bl_info = {
     "name": "Atelier 4 Blender (A4B)",
     "author": "TazTako (Olivier FAVRE), Lapineige, Pitiwazou (Cedric LEPILLER), Matpi",
-    "version": (1, 0 , 0),
+    "version": (0, 3 , 1),
     "blender": (2, 72, 0),
     "description": "Atelier 4 Blender",
     "warning": "This addon is still in development.",
@@ -52,32 +52,22 @@ class TazTakoClicUserPrefs(bpy.types.AddonPreferences):
             layout.label(text="")
             layout.label(text="A chaque atelier (screen layout) correspond une étape du processus de la 3D (modé, sculpt, retopo, UV, shading, FX...),")
             layout.label(text="et à chaque atelier, les pie changent de forme pour s'adapter au mieux à votre workflow.")
-            layout.label(text="")
-            layout.label(text="La touche 'tab' appelle les ateliers et change le mode le cas échéant.")
-            layout.label(text="Le bouton 4 de la souris appelle les outils,")
-            layout.label(text="et le bouton 5 appelle le pie gérant l'affichage.")
-                        
-        layout.prop(context.scene, "Enable_AvertTab", text="Conflit touche 'tab'", icon="ERROR")
+                                    
+        layout.prop(context.scene, "Enable_AvertTab", text="KeyMap par défaut", icon="QUESTION")
         if context.scene.Enable_AvertTab:
-            layout.label(text="Lorsque vous activez le pie-menu ' Tab ', l'addon ne met pas en sommeil la touche Tab originale.")
-            layout.label(text="Le pie-menu ne s'affichera peut-être pas, si c'est le cas, suivez cette procédure :")     
-            layout.label(text="")
-            layout.label(text="1.Ouvrez le panneau ' User Preferences '")
-            layout.label(text="2. Allez dans ' Input '")
-            layout.label(text="3. Assurez-vous que ' Key-binding ' soit actif (et pas ' Name ')")
-            layout.label(text="4. Tapez ' tab ' dans la zone de recherche juste à côté : une dizaine de raccourcis devrait s'afficher, dont 3 sous ' Object Non Modal '")
-            layout.label(text="5. Normalement, si vous déroulez la 1ère zone, le paramètre ' Mode ' devrait afficher ' Edit Mode '.")
-            layout.label(text="   Si c'est le cas, vous avez trouvé la fonction qui crée un conflit.")
-            layout.label(text="6. Il vous suffit juste de décocher ce panel pour désactiver l'ancien Tab")
-            layout.label(text="7. N'oubliez pas de sauver (' Save User Settings ')")
-        
+            layout.label(text="La keymap utilise les boutons 4 & 5 de la souris associés à la touche Ctrl:")
+            layout.label(text="le bouton 5 affiche le pie d'affichage")     
+            layout.label(text="le bouton 5 (associé à Ctrl) affiche le pie des ateliers")
+            layout.label(text="le bouton 4 affiche le 1er pie d'outils")
+            layout.label(text="le bouton 4 (associé à Ctrl) affiche le 2ème pie d'outils")
+                    
         layout.prop(context.scene, "Enable_URL", text="Remerciements et Liens", icon="URL")
         if context.scene.Enable_URL:
             row = layout.row(align=True)
             row.label(text="Cet addon n'aurait jamais vu le jour sans le soutien de la communauté BlenderLounge :")
-            row.operator("wm.url_open", text="forum BlenderLounge").url = "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=712"
+            row.operator("wm.url_open", text="forum BlenderLounge").url = "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=1524"
             row = layout.row(align=True)
-            row.label(text="Le blog de l'auteur TazTako (Olivier FAVRE):")
+            row.label(text="Le blog de l'auteur Olive/TazTako (Olivier FAVRE):")
             row.operator("wm.url_open", text="bd.olidou.com").url = "http://bd.olidou.com"
             
 ####################################################################################################################################################
@@ -941,7 +931,7 @@ class ClassSwitchOutlinerProperties(bpy.types.Operator):
         return {'FINISHED'}
     
 ############################################################################################################################
-#                                                Pie Menu - Ateliers (touche Tab)                                          #
+#                                              Pie Menu - Ateliers (Ctrl bouton 5)                                         #
 ############################################################################################################################
 
 class TazTakoPieLayout(Menu):
@@ -977,7 +967,7 @@ class TazTakoPieLayout(Menu):
             pie.operator("class.layoutanim", text="Anim > FX", icon='ANIM')
             
 ####################################################################################################################################################
-#                                                           Pie Menu Vew - Gestion affichage                                                       #
+#                                               Pie Menu Vew - Gestion affichage (bouton 5)                                                        #
 ####################################################################################################################################################
 
 class TazTakoPieView(Menu):
@@ -1204,12 +1194,12 @@ class TazTakoPieView(Menu):
             pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
                                                 
 ######################################################################################################################################
-#                                                       Pie Menu - Outils                                                            #
+#                                                       Pie Menu - Outils 1 (bouton 4)                                               #
 ######################################################################################################################################
 
-class TazTakoPieTools(Menu):
-    bl_idname = "tazpie.tools"
-    bl_label = "TOOLS"
+class TazTakoPieTools1(Menu):
+    bl_idname = "tazpie.tools1"
+    bl_label = "TOOLS 1"
             
     def draw(self, context):
         layout = self.layout
@@ -1590,6 +1580,179 @@ class TazTakoPieTools(Menu):
             box.label("Tools for Hair are still in development", icon='INFO') 
 
 ######################################################################################################################################
+#                                                Pie Menu - Outils 2 (Ctrl + bouton 4)                                               #
+######################################################################################################################################
+
+class TazTakoPieTools2(Menu):
+    bl_idname = "tazpie.tools2"
+    bl_label = "TOOLS 2"
+            
+    def draw(self, context):
+        layout = self.layout
+        
+        pie = layout.menu_pie()
+    
+# ---- Pie Menu Outils 2 - Layouts "Scene" & "Edit Mode" en vue 3D ----
+
+        if not bpy.context.object:
+            # 1 - Ouest
+            pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
+            # 2 - Est
+            pie.menu("INFO_MT_file_open_recent", text="Recent...", icon='OPEN_RECENT')
+            # 3 - Sud
+            box = pie.split().box().column()
+            box.label("Import Asset :")
+            box.operator("wm.append", text="Append", icon='APPEND_BLEND')
+            box.separator()
+            box.operator("wm.link", text="Link", icon='LINK_BLEND')
+            box.separator()
+            box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
+            # 4 - Nord
+            pie.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
+            
+        elif bpy.context.screen == bpy.data.screens["A4B-Scene"] or bpy.context.screen == bpy.data.screens["A4B-Edit Mode"]:
+            if bpy.context.area.type == 'VIEW_3D':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 2 for Edit-Mode are still in development", icon='INFO') 
+                
+                    
+# ---- Pie Menu Outils 2 - Layout Sculpt ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Sculpt"] and bpy.context.area.type == 'VIEW_3D' and bpy.context.object.mode == 'SCULPT':
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Sculpt are still in development", icon='INFO') 
+            
+# ---- Pie Menu Outils 2 - Layout Retopology ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Retopology"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Retopology are still in development", icon='INFO') 
+            
+
+# ---- Pie Menu Outils 2 - Layout UV Editing / Image Editor ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"] and bpy.context.area.type == 'IMAGE_EDITOR':
+    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Image Editor are still in development", icon='INFO')
+                        
+            
+# ---- Pie Menu Outils 2 - Layout UV Editing / 3D View ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"] and bpy.context.area.type == 'VIEW_3D':
+           box = pie.split().box().column()
+           box.label("Tools 2 for UV Editing are still in development", icon='INFO') 
+            
+# ---- Pie Menu Outils 2 - Layout "Nodal" - Node Editor ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Nodal"] and bpy.context.area.type == 'NODE_EDITOR':
+        
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Node Editor are still in development", icon='INFO')
+      
+# ---- Pie-Menu Outils 2 - Layout Nodal - 3D view ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Nodal"] and bpy.context.area.type == 'VIEW_3D':
+            
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Nodal/3D view are still in development", icon='INFO')
+                                
+# ---- Pie Menu Outils 2 - Layout Scripting ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Scripting"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Scripting are still in development", icon='INFO')
+                      
+
+# ---- Pie Menu Outils 2 - Layout Texture Painting ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Texture Painting"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Texture Painting are still in development", icon='INFO') 
+
+        
+        
+# ---- Pie Menu Outils 2 - Layout Vertex Painting ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Vertex Painting"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Vertex Painting are still in development", icon='INFO') 
+
+        
+
+# ---- Pie Menu Outils 2 - Layout Weight Painting ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Weight Painting"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Weight Painting are still in development", icon='INFO') 
+
+
+# ---- Pie Menu Outils 2 - Layout Motion Tracking ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Motion Tracking"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Motion Tracking are still in development", icon='INFO') 
+
+
+# ---- Pie Menu Outils 2 - Layout Video Editing ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Video Editing"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Video Editing are still in development", icon='INFO') 
+            
+# ---- Pie Menu Outils 2 - Layout Animation ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Animation"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Animation are still in development", icon='INFO') 
+            
+# ---- Pie Menu Outils 2 - Layout FX ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-FX"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for FX are still in development", icon='INFO') 
+
+# ---- Pie Menu Outils 2 - Layout Skinning ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Skinning are still in development", icon='INFO')
+            
+# ---- Pie Menu Outils 2 - Layout Hair ----
+
+        elif bpy.context.screen == bpy.data.screens["A4B-Hair"]:
+                    
+            # 1 - Ouest
+            box = pie.split().box().column()
+            box.label("Tools 2 for Hair are still in development", icon='INFO') 
+            
+######################################################################################################################################
 #                                                       Menus                                                                        #
 ######################################################################################################################################
 
@@ -1841,7 +2004,8 @@ def register():
     # Pie-Menus
     bpy.utils.register_class(TazTakoPieLayout)
     bpy.utils.register_class(TazTakoPieView)
-    bpy.utils.register_class(TazTakoPieTools)
+    bpy.utils.register_class(TazTakoPieTools1)
+    bpy.utils.register_class(TazTakoPieTools2)
     # Classes Pie View
     bpy.utils.register_class(ViewMenu)
     bpy.utils.register_class(TazTakoObjectShadingFlat)
@@ -1890,17 +2054,21 @@ def register():
 
     if wm.keyconfigs.addon:
         
-        # Pie Layout - Tab
+        # Pie Layouts - Ctrl + bouton 5
         km = wm.keyconfigs.addon.keymaps.new(name="Screen")
-        kmi = km.keymap_items.new("wm.call_menu_pie", "TAB", "PRESS").properties.name="tazpie.layouts"
+        kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON5MOUSE", "PRESS", ctrl=True).properties.name="tazpie.layouts"
         
-        # Pie Affichage - bouton 5 (en bas)
+        # Pie Affichage - bouton 5
         km = wm.keyconfigs.addon.keymaps.new(name="Screen")
         kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON5MOUSE", "PRESS").properties.name="tazpie.view"
         
-        # Pie Tools - bouton 4 (en haut)
+        # Pie Tools - bouton 4
         km = wm.keyconfigs.addon.keymaps.new(name="Screen")
-        kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON4MOUSE", "PRESS").properties.name="tazpie.tools"
+        kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON4MOUSE", "PRESS").properties.name="tazpie.tools1"
+        
+        # Pie Tools - Ctrl + bouton 4
+        km = wm.keyconfigs.addon.keymaps.new(name="Screen")
+        kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON4MOUSE", "PRESS", ctrl=True).properties.name="tazpie.tools2"
         
         #addon_keymaps.append(km)
         
@@ -1920,7 +2088,8 @@ def unregister():
     # Pie-Menus
     bpy.utils.unregister_class(TazTakoPieLayout)
     bpy.utils.unregister_class(TazTakoPieView)
-    bpy.utils.unregister_class(TazTakoPieTools)
+    bpy.utils.unregister_class(TazTakoPieTools1)
+    bpy.utils.unregister_class(TazTakoPieTools2)
     # Classes Pie View
     bpy.utils.unregister_class(ViewMenu)
     bpy.utils.unregister_class(TazTakoObjectShadingFlat)
