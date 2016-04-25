@@ -6,7 +6,7 @@
 bl_info = {
     "name": "Atelier 4 Blender (A4B)",
     "author": "TazTako (Olivier FAVRE), Lapineige, Pitiwazou (Cedric LEPILLER), Matpi",
-    "version": (0, 3 , 1),
+    "version": (0, 3 , 2),
     "blender": (2, 72, 0),
     "description": "Atelier 4 Blender",
     "warning": "This addon is still in development.",
@@ -701,27 +701,18 @@ class ClassLayoutNodal(bpy.types.Operator):
             bpy.context.window.screen = bpy.data.screens["A4B-Nodal"]
         return {'FINISHED'}
     
-# Switch between layouts "A4B-Painting..." (Texture > Vertex > Weight)
+# Switch to layout "A4B-Painting"
 class ClassLayoutPaint(bpy.types.Operator):
-    """Switch between Painting modes "Texture" "Vertex" & "Weght"  """
+    """Switch to layout "A4B-Painting" """
     bl_idname = "class.layoutpaint"
     bl_label = "Class Layout Paint"
     
     def execute(self, context):
         layout = self.layout
         
-        if bpy.context.window.screen == bpy.data.screens["A4B-Texture Painting"]:
-            bpy.context.window.screen = bpy.data.screens["A4B-Vertex Painting"]
-            bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.paint.vertex_paint_toggle()
-        elif bpy.context.screen == bpy.data.screens["A4B-Vertex Painting"]:
-            bpy.context.window.screen = bpy.data.screens["A4B-Weight Painting"]
-            bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.paint.weight_paint_toggle()
-        else:
-            bpy.context.window.screen = bpy.data.screens["A4B-Texture Painting"]
-            bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.paint.texture_paint_toggle()
+        bpy.context.window.screen = bpy.data.screens["A4B-Painting"]
+        bpy.ops.object.mode_set(mode="OBJECT")
+        bpy.ops.paint.texture_paint_toggle()
         return {'FINISHED'}    
     
 # Switch to layout "A4B-Scripting"
@@ -878,6 +869,24 @@ class TazTakoObjectShadingSmooth(bpy.types.Operator):
             bpy.ops.paint.weight_paint_toggle()
         return {'FINISHED'} 
     
+# Switch Painting Modes : Texture > Vertex > Weight
+class ClassSwitchPaintingModes(bpy.types.Operator):
+    """Switch between Painting Modes"""
+    bl_idname = "class.switchpaintingmodes"
+    bl_label = "Class Switch Painting Modes"
+    
+    def execute(self, context):
+        layout = self.layout
+        
+        if bpy.context.object.mode == "TEXTURE_PAINT":
+            bpy.ops.paint.vertex_paint_toggle()
+        elif bpy.context.object.mode == "VERTEX_PAINT":
+            bpy.ops.paint.weight_paint_toggle()
+        else:
+            bpy.ops.object.mode_set(mode = 'OBJECT')
+            bpy.ops.paint.texture_paint_toggle()
+        return {'FINISHED'}
+    
 # Shading Variable (bbox, wireframe, solid, textured, rendered)
 class ShadingVariable(bpy.types.Operator):
     """Tooltip"""
@@ -942,6 +951,7 @@ class TazTakoPieLayout(Menu):
         layout = self.layout
         
         pie = layout.menu_pie()
+        
         if not bpy.context.object:
             # 1 - Ouest
             pie.operator("class.layoutvse", text="Video Edit", icon='SEQ_SEQUENCER')
@@ -952,7 +962,7 @@ class TazTakoPieLayout(Menu):
             # 1 - Ouest
             pie.operator("class.layoutedit", text="Scene > Edit", icon='EDITMODE_VEC_HLT')
             # 2 - Est
-            pie.operator("class.layoutpaint", text="Tex > Vert > Weight", icon='TPAINT_HLT')
+            pie.operator("class.layoutpaint", text="Painting", icon='TPAINT_HLT')
             # 3 - Sud
             pie.operator("class.layoutvse", text="Video Edit > Motion Track", icon='SEQ_SEQUENCER')
             # 4 - Nord
@@ -988,16 +998,16 @@ class TazTakoPieView(Menu):
             else:
                 box = pie.split().column()
                 row = box.row(align=True)
-                row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')
+                row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')# nouvelle classe (Lapineige)
                 row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
                 # 2 - Est
                 box = pie.split().column()
                 row = box.row(align=True)
                 row.operator("view3d.render_border", text="Render Border", icon='RENDER_REGION')
                 row.operator("view3d.clear_render_border", text="Clear", icon='CANCEL')
-                # 3 - Sud - Overlays / Camera
-                box = pie.split().box().column()
-                if bpy.context.object.mode == 'EDIT':
+                # 3 - Sud
+                if bpy.context.object.mode == 'EDIT':# Overlays
+                    box = pie.split().box().column()
                     box.label("Show Normals :")
                     box.prop(context.active_object.data, "show_normal_face", text="Face", icon='FACESEL')
                     box.prop(context.active_object.data, "show_normal_loop", text="Edge", icon='LOOPSEL')
@@ -1009,7 +1019,8 @@ class TazTakoPieView(Menu):
                     box.prop(context.active_object.data, "show_edge_crease", text="Crease (SubSurf)")
                     box.prop(context.active_object.data, "show_edge_bevel_weight", text="Bevel")
                     box.prop(context.active_object.data, "show_extra_edge_lenght", text="Lenght")
-                elif bpy.context.object.mode == 'OBJECT':
+                elif bpy.context.object.mode == 'OBJECT':# Camera
+                    box = pie.split().box().column()
                     box.label("Camera :")
                     if context.space_data.lock_camera:
                         box.prop(context.space_data, "lock_camera", icon = "LOCKED")
@@ -1019,7 +1030,12 @@ class TazTakoPieView(Menu):
                     box.operator("view3d.camera_to_view", text="View to Cam.", icon = 'VISIBLE_IPO_ON')
                     box.operator("object.track_set", text="Cam. track to object (select 1st Cam, 2nd Object)", icon='CAMERA_DATA').type='TRACKTO'
                     box.operator("view3d.object_as_camera", text="Activate this Camera", icon='HAND')
+                elif bpy.context.object.mode == "TEXTURE_PAINT" or bpy.context.object.mode == "VERTEX_PAINT" or bpy.context.object.mode == "WEIGHT_PAINT":# Painting Modes
+                    pie.operator("class.switchpaintingmodes", text="Tex > Vert > Weight", icon='FILE_REFRESH')# nouvelle classe
+                elif bpy.context.object.mode == "SCULPT":# Switch direct vers A4B-Retopo
+                    pie.operator("class.layoutsculpt", text="> Retopo", icon='FILE_REFRESH')# nouvelle classe
                 else:
+                    box = pie.split().box().column()
                     box.label("Still in development", icon='INFO')
                 # 4 - Nord
                 box = pie.split().box().column()
@@ -1065,8 +1081,8 @@ class TazTakoPieView(Menu):
                 row.operator("object.shadingvariable", icon="MATERIAL").variable="MATERIAL"
                 row.operator("object.shadingvariable", icon="SMOOTH").variable="RENDERED"
                 row = box.row(align=True)
-                row.operator("class.taztako_object_shading_flat", text="Flat")
-                row.operator("class.taztako_object_shading_smooth", text="Smooth")
+                row.operator("class.taztako_object_shading_flat", text="Flat")# nouvelle classe
+                row.operator("class.taztako_object_shading_smooth", text="Smooth")# nouvelle classe
                 # 5 - Nord-Ouest
                 pie.operator("view3d.view_selected", text="Zoom Selected", icon='VIEWZOOM')
                 # 6 - Nord-Est
@@ -1079,16 +1095,15 @@ class TazTakoPieView(Menu):
 # ---- Pie Menu Affichage - Node Editor ----
 
         elif bpy.context.area.type == 'NODE_EDITOR':
-        
             # 1 - Ouest
             box = pie.split().column()
             row = box.row(align=True)
-            row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')
+            row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')# nouvelle classe (Lapineige)
             row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
             # 2 - Est
             pie.operator("node.view_all", text="View All Nodes", icon='NODETREE')
             # 3 - Sud
-            pie.operator("class.switchnodal", text="Shaders > Compo > Tex.", icon='FILE_REFRESH')
+            pie.operator("class.switchnodal", text="Shaders > Compo > Tex.", icon='FILE_REFRESH')# nouvelle classe
             # 4 - Nord
             box = pie.split().box().column()
             box.label("Shading :")
@@ -1104,14 +1119,13 @@ class TazTakoPieView(Menu):
             # 6 - Nord-Est
             pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
                         
-# ---- Pie Menu Affichage - UV-Image Editor ----
+# ---- Pie Menu Affichage - Image Editor ----
 
         elif bpy.context.area.type == 'IMAGE_EDITOR':
-        
             # 1 - Ouest
             box = pie.split().column()
             row = box.row(align=True)
-            row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')
+            row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')# nouvelle classe (Lapineige)
             row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
             # 2 - Est
             pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
@@ -1126,7 +1140,6 @@ class TazTakoPieView(Menu):
 # ---- Pie Menu Affichage - Outliner ----
 
         elif bpy.context.area.type == 'OUTLINER':
-        
             # 1 - Ouest
             box = pie.split().column()
             row = box.row(align=True)
@@ -1135,14 +1148,13 @@ class TazTakoPieView(Menu):
             # 2 - Est
             pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
             # 3 - Sud
-            pie.operator("class.switchoutlinerproperties", text="> Properties", icon='FILE_REFRESH')
+            pie.operator("class.switchoutlinerproperties", text="> Properties", icon='FILE_REFRESH')# nouvelle classe
             # 4 - Nord
             pie.operator("outliner.show_active", text="Show Active Object", icon='VIEW3D')
                                 
 # ---- Pie Menu Affichage - Properties ----
 
         elif bpy.context.area.type == 'PROPERTIES':
-        
             # 1 - Ouest
             box = pie.split().column()
             row = box.row(align=True)
@@ -1151,7 +1163,7 @@ class TazTakoPieView(Menu):
             # 2 - Est
             pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
             # 3 - Sud
-            pie.operator("class.switchoutlinerproperties", text="> Outliner", icon='FILE_REFRESH')
+            pie.operator("class.switchoutlinerproperties", text="> Outliner", icon='FILE_REFRESH')# nouvelle classe
             
 # ---- Pie Menu Affichage - Anim ----
 
@@ -1168,7 +1180,6 @@ class TazTakoPieView(Menu):
 # ---- Pie Menu Affichage - Text Editor ----
 
         elif bpy.context.area.type == 'TEXT_EDITOR':
-        
             # 1 - Ouest
             box = pie.split().column()
             row = box.row(align=True)
@@ -1184,7 +1195,6 @@ class TazTakoPieView(Menu):
 # ---- Pie Menu Affichage - Autres vues ----
 
         else:
-        
             # 1 - Ouest
             box = pie.split().column()
             row = box.row(align=True)
@@ -1206,78 +1216,133 @@ class TazTakoPieTools1(Menu):
         
         pie = layout.menu_pie()
     
-# ---- Pie Menu Outils - Layouts "Scene" & "Edit Mode" en vue 3D ----
+# ---- Pie Menu Outils 1 - Vue 3D / Sans objet dans la scene ----
 
-        if not bpy.context.object:
-            # 1 - Ouest
-            pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
-            # 2 - Est
-            pie.menu("INFO_MT_file_open_recent", text="Recent...", icon='OPEN_RECENT')
-            # 3 - Sud
-            box = pie.split().box().column()
-            box.label("Import Asset :")
-            box.operator("wm.append", text="Append", icon='APPEND_BLEND')
-            box.separator()
-            box.operator("wm.link", text="Link", icon='LINK_BLEND')
-            box.separator()
-            box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
-            # 4 - Nord
-            pie.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
+        if bpy.context.area.type == 'VIEW_3D':
+            if not bpy.context.object:
+                # 1 - Ouest
+                pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
+                # 2 - Est
+                pie.menu("INFO_MT_file_open_recent", text="Recent...", icon='OPEN_RECENT')
+                # 3 - Sud
+                box = pie.split().box().column()
+                box.label("Import Asset :")
+                box.operator("wm.append", text="Append", icon='APPEND_BLEND')
+                box.separator()
+                box.operator("wm.link", text="Link", icon='LINK_BLEND')
+                box.separator()
+                box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
+                # 4 - Nord
+                pie.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
             
-        elif bpy.context.screen == bpy.data.screens["A4B-Scene"] or bpy.context.screen == bpy.data.screens["A4B-Edit Mode"]:
-            if bpy.context.area.type == 'VIEW_3D':
+# ---- Pie Menu Outils 1 - Vue 3D / Layout Retopology ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Retopology"]:# pb: impossible en l'état actuel de sculpter, peindre, etc, sans changer de layout
+                if bpy.context.object.mode == 'EDIT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Retopology (Edit-Mode) are still in development", icon='INFO') 
+                    # 2 - Est
+                    pie.operator("mesh.laprelax", text = "Lap Relax", icon = 'LATTICE_DATA')# nouvelle classe
+                    # 3 - Sud
+                    box = pie.split().box().column()
+                    box.label("Normals :")
+                    box.operator("mesh.normals_make_consistent", text="Recalculate", icon='SCRIPTWIN')
+                    box.operator("mesh.flip_normals", text="Flip", icon='FILE_REFRESH')
+                    # 4 - Nord
+                    if tuple (bpy.context.tool_settings.mesh_select_mode) == (False, False, True):
+                        pie.operator("mesh.tris_convert_to_quads", text="Tris -> Quads")                
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Retopology (other modes) are still in development", icon='INFO')
+                    # 2 - Est
+                    
+                                                                
+# ---- Pie Menu Outils 1 - Vue 3D / Layout UV Editing ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"]:# pb: impossible en l'état actuel de sculpter, peindre, etc, sans changer de layout
+               if bpy.context.object.mode == 'EDIT':
+                   # 1 - Ouest
+                   box = pie.split().box().column()
+                   box.label("Tools 1 for UV Editing (Edit-Mode) are still in development", icon='INFO')
+               else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for UV Editing (other modes) are still in development", icon='INFO')
+               
+# ---- Pie Menu Outils 1 - Vue 3D / Layout Animation ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Animation"] :
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Animation (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Animation (other modes) are still in development", icon='INFO')
+            
+# ---- Pie Menu Outils 1 - Vue 3D / Layout FX ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-FX"]:
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for FX (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for FX (other modes) are still in development", icon='INFO')
+
+# ---- Pie Menu Outils 1 - Vue 3D / Layout Skinning ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Skinning (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Skinning (other modes) are still in development", icon='INFO')
+            
+# ---- Pie Menu Outils 1 - Vue 3D / Layout Hair ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Hair"]:
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Hair (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 1 for Hair (other modes) are still in development", icon='INFO')
+                
+# ---- Pie Menu Outils 1 - Vue 3D / Mode Object ----
+
+            elif bpy.context.object.mode == 'OBJECT':
                 # 1 - Ouest
                 box = pie.split().box().column()
-                box.label("Tools :")
-                if bpy.context.object.mode == 'OBJECT':
-                    box.operator("object.join", text="Join objects", icon='ROTATECENTER')
-                    box.operator("object.wazou_separate_looseparts", text="Separate Loose Parts", icon='ROTATECOLLECTION')# nouvelle classe
-                    row = box.row(align=True)
-                    row.label("Duplicate :")
-                    row.operator("object.duplicate_move", text="Normal", icon='UNLINKED')
-                    row.operator("object.duplicate_move_linked", text="Linked", icon='LINKED')
-                    row = box.row(align=True)
-                    row.label("Apply :")
-                    row.operator("object.applyrotation", text="Rotation", icon='MAN_ROT')# nouvelle classe
-                    row.separator()
-                    row.operator("object.applyscale", text="Scale", icon='MAN_SCALE')# nouvelle classe
-                elif bpy.context.object.mode == 'EDIT':
-                    box.menu("MenuAlign", text="Align...", icon='ALIGN')
                 box.menu("MenuPivot", text="Pivot & 3D-Cursor...", icon='CURSOR')
+                box.separator()
+                box.operator("object.join", text="Join objects", icon='ROTATECENTER')
+                box.operator("object.wazou_separate_looseparts", text="Separate Loose Parts", icon='ROTATECOLLECTION')# nouvelle classe
+                box.separator()
+                row = box.row(align=True)
+                row.label("Duplicate :")
+                row.operator("object.duplicate_move", text="Normal", icon='UNLINKED')
+                row.operator("object.duplicate_move_linked", text="Linked", icon='LINKED')
                 # 2 - Est
                 box = pie.split().box().column()
-                if bpy.context.object.mode == 'OBJECT':
-                    box.label("Import :")
-                    box.operator("wm.append", text="Append", icon='APPEND_BLEND')
-                    box.separator()
-                    row = box.row(align=True)
-                    row.operator("wm.link", text="Link", icon='LINK_BLEND')
-                    row.operator("object.proxy_make", text="Proxy", icon='EMPTY_DATA')
-                    box.separator()
-                    box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
-                elif bpy.context.object.mode == 'EDIT':
-                    box.label("Mark Edges :")
-                    if tuple (bpy.context.tool_settings.mesh_select_mode) == (False, True, False):
-                        row = box.row(align=True)
-                        row.label("Freestyle :")
-                        row.operator("mesh.mark_freestyle_edge", text="Mark", icon="FILE_TICK").clear=False
-                        row.operator("mesh.mark_freestyle_edge", text="Un-Mark", icon="CANCEL").clear=True
-                        row = box.row(align=True)
-                        row.label("Seam (découpe UV):")
-                        row.operator("mesh.mark_seam", text="Mark", icon="FILE_TICK").clear=False
-                        row.operator("mesh.mark_seam", text="Un-Mark", icon="CANCEL").clear=True
-                        row = box.row(align=True)
-                        row.label("Lighting :")
-                        row.operator("mesh.mark_sharp", text="Flat").clear=False
-                        row.operator("mesh.mark_sharp", text="Smooth").clear=True
-                        row = box.row(align=True)
-                        row.label("SubSurf :")
-                        row.operator("transform.edge_crease", text="Adjust Crease", icon="STYLUS_PRESSURE")
-                        row = box.row(align=True)
-                        row.label("Bevel :")
-                        row.operator("transform.edge_bevelweight", text="Adjust Weight", icon="STYLUS_PRESSURE")
-                    else:
-                        box.label("Please select edges to view this part")
+                box.label("Import :")
+                box.operator("wm.append", text="Append", icon='APPEND_BLEND')
+                box.separator()
+                row = box.row(align=True)
+                row.operator("wm.link", text="Link", icon='LINK_BLEND')
+                row.operator("object.proxy_make", text="Proxy", icon='EMPTY_DATA')
+                box.separator()
+                box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
                 # 3 - Sud
                 box = pie.split().box().column()
                 box.label("Select :")
@@ -1286,106 +1351,110 @@ class TazTakoPieTools1(Menu):
                 box.operator("view3d.select_lasso", text="Lasso (Ctrl)", icon='BORDER_LASSO')
                 box.separator()
                 box.operator("class.selectiontakorevert", text="Reverse", icon='FILE_REFRESH')
-                if bpy.context.object.mode == 'OBJECT':
-                    box.separator()
-                    box.operator("object.select_linked", text="Same Material").type='MATERIAL'
-                elif bpy.context.object.mode == 'EDIT':               
-                    if tuple (bpy.context.tool_settings.mesh_select_mode) == (False, True, False):
-                        box.label("Edges similar to :")
-                        box.operator("mesh.select_similar", text="Seam (UV)").type='SEAM'
-                        box.operator("mesh.select_similar", text="Crease (SubSurf)").type='CREASE'
-                        box.operator("mesh.select_similar", text="Sharpness (Shading)").type='SHARP'
-                        box.operator("mesh.select_similar", text="FreeStyle").type='FREESTYLE_EDGE'
-                        box.operator("mesh.select_similar", text="Lenght").type='LENGTH'
-                    elif tuple (bpy.context.tool_settings.mesh_select_mode) == (False, False, True):
-                        box.label("Faces similar to :")
-                        box.operator("mesh.select_similar", text="Material").type='MATERIAL'
-                        box.operator("mesh.select_similar", text="Area").type='AREA'
-                        box.operator("mesh.select_similar", text="Normal").type='NORMAL'
-                    box.separator()
-                    row = box.row(align=True)
-                    row.operator("mesh.select_more", text="More", icon='ZOOMIN')
-                    row.operator("mesh.select_less", text="Less", icon='ZOOMOUT')
-                    box.separator()
-                    row = box.row(align=True)
-                    row.operator("mesh.loop_multi_select", text="Loop").ring=False
-                    row.operator("mesh.loop_multi_select", text="Ring").ring=True
+                box.separator()
+                box.operator("object.select_linked", text="Same Material").type='MATERIAL'
                 # 4 - Nord
                 box = pie.split().box().column()
-                if bpy.context.object.mode == 'OBJECT':
-                    box.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
-                elif bpy.context.object.mode == 'EDIT':
-                    box.menu("INFO_MT_mesh_add", text="Add...", icon='COLLAPSEMENU')
+                box.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
                 box.menu("MenuModifiers", text="Modifiers...", icon='MODIFIER')
-                    
-# ---- Pie Menu Outils - Layout Sculpt ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Sculpt"] and bpy.context.area.type == 'VIEW_3D' and bpy.context.object.mode == 'SCULPT':
-                    
-            # 1 - Ouest
-            pie.operator("paint.brush_select", text='Toggle Draw / Brush', icon='BRUSH_SCULPT_DRAW').sculpt_tool='DRAW'# c'est un toggle avec FBrush :)
-            # 2 - Est
-            pie.operator("paint.brush_select", text='Nudge', icon='BRUSH_NUDGE').sculpt_tool= 'NUDGE'
-            # 3 - Sud
-            box = pie.split().box().column()
-            box.operator("paint.brush_select", text='Flatten', icon='BRUSH_FLATTEN').sculpt_tool='FLATTEN'
-            box.operator("paint.brush_select", text='Fill', icon='BRUSH_FILL').sculpt_tool='FILL'
-            box.operator("paint.brush_select", text='Smooth', icon='BRUSH_SMOOTH').sculpt_tool= 'SMOOTH'
-            box.operator("paint.brush_select", text='Mask', icon='BRUSH_MASK').sculpt_tool='MASK'
-            box.operator("paint.brush_select", text='Pinch', icon='BRUSH_PINCH').sculpt_tool= 'PINCH'
-            box.operator("paint.brush_select", text='Snakehook', icon='BRUSH_SNAKE_HOOK').sculpt_tool= 'SNAKE_HOOK'
-            box.operator("paint.brush_select", text='Thumb', icon='BRUSH_THUMB').sculpt_tool= 'THUMB'
-            box.operator("paint.brush_select", text='Layer', icon='BRUSH_LAYER').sculpt_tool= 'LAYER'
-            box.operator("paint.brush_select", text='Claystrips', icon='BRUSH_CREASE').sculpt_tool= 'CLAY_STRIPS'
-            box.operator("paint.brush_select", text='Scrape/Peaks', icon='BRUSH_SCRAPE').sculpt_tool= 'SCRAPE'
-            box.label("Shortcuts :")
-            row = box.split()
-            row.label("Radius")
-            row.label("F")
-            row = box.split()
-            row.label("Strenght")
-            row.label("Shift F ")
-            # 4 - Nord
-            pie.operator("paint.brush_select", text="Clay", icon='BRUSH_CLAY').sculpt_tool='CLAY'
-            # 5 - Nord-Ouest
-            pie.operator("paint.brush_select", text='Inflate', icon='BRUSH_INFLATE').sculpt_tool='INFLATE'
-            # 6 - Nord-Est
-            pie.operator("paint.brush_select", text='Grab', icon='BRUSH_GRAB').sculpt_tool='GRAB'
-            # 7 - Sud-Ouest
-            pie.operator("paint.brush_select", text="Crease", icon='BRUSH_CREASE').sculpt_tool='CREASE'
-            # 8 - Sud-Est
-            pie.operator("paint.brush_select", text='Twist', icon='BRUSH_ROTATE').sculpt_tool= 'ROTATE'
-            
-# ---- Pie Menu Outils - Layout Retopology ----
+# ---- Pie Menu Outils 1 - Vue 3D / Mode Edit ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Retopology"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Retopology are still in development", icon='INFO') 
-            # 2 - Est
-            pie.operator("mesh.laprelax", text = "Lap Relax", icon = 'LATTICE_DATA')# nouvelle classe
-            # 3 - Sud
-            box = pie.split().box().column()
-            box.label("Normals :")
-            box.operator("mesh.normals_make_consistent", text="Recalculate", icon='SCRIPTWIN')
-            box.operator("mesh.flip_normals", text="Flip", icon='FILE_REFRESH')
-            # 4 - Nord
-            
-            # 5 - Nord-Ouest
-            
-            # 6 - Nord-Est
-            
-            # 7 - Sud-Ouest
-            if tuple (bpy.context.tool_settings.mesh_select_mode) == (False, False, True):
-                pie.operator("mesh.tris_convert_to_quads", text="Tris -> Quads")
-            # 8 - Sud-Est
-            
+            elif bpy.context.object.mode == 'EDIT':
+                # 1 - Ouest
+                pie.operator("mesh.loopcut_slide", text="Loop Cut")
+                # 2 - Est
+                pie.operator("mesh.inset", text="Inset")
+                # 3 - Sud
+                box = pie.split().box().column()
+                box.label("Tools :")
+                box.operator("view3d.edit_mesh_extrude_individual_move", text="Extrude (Individual)")
+                box.operator("mesh.remove_doubles", text="Remove Doubles")
+                box.operator("transform.shrink_fatten", text="Shrink Fatten (gonfler/réduire)")
+                box.operator("transform.tosphere", text="To Sphere")
+                box.operator("object.createhole", text="Hole")#nouvelle classe (Wazou ?)
+                box.separator()
+                box.menu("INFO_MT_mesh_add", text="Add...", icon='COLLAPSEMENU')
+                box.menu("MenuModifiers", text="Modifiers...", icon='MODIFIER')
+                # 4 - Nord
+                pie.operator("mesh.bevel", text="Bevel")
+                # 5 - Nord-Ouest
+                pie.operator("mesh.subdivide", text="Subdivide")
+                # 6 - Nord-Est
+                pie.operator("mesh.knife_tool", text="Knife")
+                # 7 - Sud-Ouest
+                pie.operator("mesh.merge", text="Merge", icon='AUTOMERGE_ON')
+                # 8 - Sud-Est
+                pie.operator("transform.push_pull", text="Push Pull")
+                
+# ---- Pie Menu Outils 1 - Vue 3D / Mode Sculpt ----
 
-# ---- Pie Menu Outils - Layout UV Editing / Image Editor ----
+            elif bpy.context.object.mode == 'SCULPT':
+                # 1 - Ouest
+                pie.operator("paint.brush_select", text='Toggle Draw / Brush', icon='BRUSH_SCULPT_DRAW').sculpt_tool='DRAW'# c'est un toggle avec FBrush :)
+                # 2 - Est
+                pie.operator("paint.brush_select", text='Nudge', icon='BRUSH_NUDGE').sculpt_tool= 'NUDGE'
+                # 3 - Sud
+                box = pie.split().box().column()
+                box.operator("paint.brush_select", text='Flatten', icon='BRUSH_FLATTEN').sculpt_tool='FLATTEN'
+                box.operator("paint.brush_select", text='Fill', icon='BRUSH_FILL').sculpt_tool='FILL'
+                box.operator("paint.brush_select", text='Smooth', icon='BRUSH_SMOOTH').sculpt_tool= 'SMOOTH'
+                box.operator("paint.brush_select", text='Mask', icon='BRUSH_MASK').sculpt_tool='MASK'
+                box.operator("paint.brush_select", text='Pinch', icon='BRUSH_PINCH').sculpt_tool= 'PINCH'
+                box.operator("paint.brush_select", text='Snakehook', icon='BRUSH_SNAKE_HOOK').sculpt_tool= 'SNAKE_HOOK'
+                box.operator("paint.brush_select", text='Thumb', icon='BRUSH_THUMB').sculpt_tool= 'THUMB'
+                box.operator("paint.brush_select", text='Layer', icon='BRUSH_LAYER').sculpt_tool= 'LAYER'
+                box.operator("paint.brush_select", text='Claystrips', icon='BRUSH_CREASE').sculpt_tool= 'CLAY_STRIPS'
+                box.operator("paint.brush_select", text='Scrape/Peaks', icon='BRUSH_SCRAPE').sculpt_tool= 'SCRAPE'
+                box.label("Shortcuts :")
+                row = box.split()
+                row.label("Radius")
+                row.label("F")
+                row = box.split()
+                row.label("Strenght")
+                row.label("Shift F ")
+                # 4 - Nord
+                pie.operator("paint.brush_select", text="Clay", icon='BRUSH_CLAY').sculpt_tool='CLAY'
+                # 5 - Nord-Ouest
+                pie.operator("paint.brush_select", text='Inflate', icon='BRUSH_INFLATE').sculpt_tool='INFLATE'
+                # 6 - Nord-Est
+                pie.operator("paint.brush_select", text='Grab', icon='BRUSH_GRAB').sculpt_tool='GRAB'
+                # 7 - Sud-Ouest
+                pie.operator("paint.brush_select", text="Crease", icon='BRUSH_CREASE').sculpt_tool='CREASE'
+                # 8 - Sud-Est
+                pie.operator("paint.brush_select", text='Twist', icon='BRUSH_ROTATE').sculpt_tool= 'ROTATE'
+                          
+# ---- Pie Menu Outils 1 - Vue 3D / Texture Painting ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"] and bpy.context.area.type == 'IMAGE_EDITOR':
-    
+            elif bpy.context.object.mode == 'TEXTURE_PAINT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 1 for Texture Painting are still in development", icon='INFO') 
+            
+# ---- Pie Menu Outils 1 - Vue 3D / Vertex Painting ----
+
+            elif bpy.context.object.mode == 'VERTEX_PAINT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 1 for Vertex Painting are still in development", icon='INFO') 
+
+# ---- Pie Menu Outils 1 - Vue 3D / Weight Painting ----
+
+            elif bpy.context.object.mode == 'WEIGHT_PAINT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 1 for Weight Painting are still in development", icon='INFO')               
+            
+# ---- Pie Menu Outils 1 - Vue 3D / Layout Motion Tracking ----
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Motion Tracking"]:
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 1 for Motion Tracking are still in development", icon='INFO')
+            
+# ---- Pie Menu Outils 1 - Image Editor ----
+
+        elif bpy.context.area.type == 'IMAGE_EDITOR':
             # 1 - Ouest
             pie.operator("uv.pin", text="Pin", icon='PINNED').clear=False
             # 2 - Est
@@ -1407,17 +1476,9 @@ class TazTakoPieTools1(Menu):
             # 6 - Nord-Est
             pie.operator("uv.average_islands_scale", text="Average Islands Scale", icon='UV_ISLANDSEL')
                         
-            
-# ---- Pie Menu Outils - Layout UV Editing / 3D View ----
+# ---- Pie Menu Outils 1 - Node Editor ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"] and bpy.context.area.type == 'VIEW_3D':
-           box = pie.split().box().column()
-           box.label("Tools for UV Editing are still in development", icon='INFO') 
-            
-# ---- Pie Menu Outils - Layout "Nodal" - Node Editor ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Nodal"] and bpy.context.area.type == 'NODE_EDITOR':
-        
+        elif bpy.context.area.type == 'NODE_EDITOR':
             # 1 - Ouest
             box = pie.split().box().column()
             box.label("Help Preview Rendering :")
@@ -1460,31 +1521,9 @@ class TazTakoPieTools1(Menu):
             row.label("Cut Link", icon='UNLINKED')
             row.label("Ctrl LMB")
       
-# ---- Pie-Menu Outils - Layout Nodal - 3D view ----
+# ---- Pie Menu Outils 1 - Text Editor ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Nodal"] and bpy.context.area.type == 'VIEW_3D':
-            
-            # 1 - Ouest
-            pie.operator("object.lamp_add", text="Hemi", icon='LAMP_HEMI').type = 'HEMI'
-            # 2 - Est
-            pie.operator("object.lamp_add", text="Point", icon='LAMP_POINT').type = 'POINT'
-            # 3 - Sud
-            box = pie.split().box().column()
-            box.label("Shading :")
-            row = box.row(align=True)
-            row.operator("class.taztako_object_shading_flat", text="Flat")
-            row.operator("class.taztako_object_shading_smooth", text="Smooth")
-            # 4 - Nord
-            pie.operator("object.lamp_add", text="Sun", icon='LAMP_SUN').type = 'SUN'
-            # 5 - Nord-Ouest
-            pie.operator("object.lamp_add", text="Area", icon='LAMP_AREA').type = 'AREA'
-            # 6 - Nord-Est
-            pie.operator("object.lamp_add", text="Spot", icon='LAMP_SPOT').type = 'SPOT'
-                                
-# ---- Pie Menu Outils - Layout Scripting ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Scripting"]:
-                    
+        elif bpy.context.area.type == 'TEXT_EDITOR':
             # 1 - Ouest
             pie.operator("text.unindent", text="Un-Indent", icon='BACK')
             # 2 - Est
@@ -1499,86 +1538,14 @@ class TazTakoPieTools1(Menu):
             pie.operator("text.comment", text="Comment", icon='FONT_DATA')
             # 7 - Sud-Ouest
             pie.operator('text.select_line',icon='BORDER_RECT')
-                      
 
-# ---- Pie Menu Outils - Layout Texture Painting ----
+# ---- Pie Menu Outils 1 - Layout Video Editing ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Texture Painting"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Texture Painting are still in development", icon='INFO') 
-
-        
-        
-# ---- Pie Menu Outils - Layout Vertex Painting ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Vertex Painting"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Vertex Painting are still in development", icon='INFO') 
-
-        
-
-# ---- Pie Menu Outils - Layout Weight Painting ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Weight Painting"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Weight Painting are still in development", icon='INFO') 
-
-
-# ---- Pie Menu Outils - Layout Motion Tracking ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Motion Tracking"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Motion Tracking are still in development", icon='INFO') 
-
-
-# ---- Pie Menu Outils - Layout Video Editing ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Video Editing"]:
-                    
+        elif bpy.context.area.type == 'SEQUENCE_EDITOR':
             # 1 - Ouest
             box = pie.split().box().column()
             box.label("Tools for Video Editing are still in development", icon='INFO') 
             
-# ---- Pie Menu Outils - Layout Animation ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Animation"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Animation are still in development", icon='INFO') 
-            
-# ---- Pie Menu Outils - Layout FX ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-FX"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for FX are still in development", icon='INFO') 
-
-# ---- Pie Menu Outils - Layout Skinning ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Skinning are still in development", icon='INFO')
-            
-# ---- Pie Menu Outils - Layout Hair ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Hair"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools for Hair are still in development", icon='INFO') 
-
 ######################################################################################################################################
 #                                                Pie Menu - Outils 2 (Ctrl + bouton 4)                                               #
 ######################################################################################################################################
@@ -1592,165 +1559,248 @@ class TazTakoPieTools2(Menu):
         
         pie = layout.menu_pie()
     
-# ---- Pie Menu Outils 2 - Layouts "Scene" & "Edit Mode" en vue 3D ----
+# ---- Pie Menu Outils 2 - Vue 3D / Sans objet dans la scene ----
 
-        if not bpy.context.object:
-            # 1 - Ouest
-            pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
-            # 2 - Est
-            pie.menu("INFO_MT_file_open_recent", text="Recent...", icon='OPEN_RECENT')
-            # 3 - Sud
-            box = pie.split().box().column()
-            box.label("Import Asset :")
-            box.operator("wm.append", text="Append", icon='APPEND_BLEND')
-            box.separator()
-            box.operator("wm.link", text="Link", icon='LINK_BLEND')
-            box.separator()
-            box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
-            # 4 - Nord
-            pie.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
+        if bpy.context.area.type == 'VIEW_3D':
+            if not bpy.context.object:
+                # 1 - Ouest
+                pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
+                # 2 - Est
+                pie.menu("INFO_MT_file_open_recent", text="Recent...", icon='OPEN_RECENT')
+                # 3 - Sud
+                box = pie.split().box().column()
+                box.label("Import Asset :")
+                box.operator("wm.append", text="Append", icon='APPEND_BLEND')
+                box.separator()
+                box.operator("wm.link", text="Link", icon='LINK_BLEND')
+                box.separator()
+                box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
+                # 4 - Nord
+                pie.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
             
-        elif bpy.context.screen == bpy.data.screens["A4B-Scene"] or bpy.context.screen == bpy.data.screens["A4B-Edit Mode"]:
-            if bpy.context.area.type == 'VIEW_3D':
+# ---- Pie Menu Outils 2 - Vue 3D / Layout Retopology ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Retopology"]:# pb: impossible en l'état actuel de sculpter, peindre, etc, sans changer de layout
+                if bpy.context.object.mode == 'EDIT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Retopology (Edit-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Retopology (other modes) are still in development", icon='INFO')
+                                                                
+# ---- Pie Menu Outils 2 - Vue 3D / Layout UV Editing ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"]:# pb: impossible en l'état actuel de sculpter, peindre, etc, sans changer de layout
+               if bpy.context.object.mode == 'EDIT':
+                   # 1 - Ouest
+                   box = pie.split().box().column()
+                   box.label("Tools 2 for UV-Editing (Edit-Mode) are still in development", icon='INFO')
+               else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for UV Editing (other modes) are still in development", icon='INFO')
+                    
+# ---- Pie Menu Outils 2 - Vue 3D / Layout Animation ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Animation"] :
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Animation (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Animation (other modes) are still in development", icon='INFO')
+            
+# ---- Pie Menu Outils 2 - Vue 3D / Layout FX ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-FX"]:
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for FX (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for FX (other modes) are still in development", icon='INFO')
+
+# ---- Pie Menu Outils 2 - Vue 3D / Layout Skinning ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Skinning (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Skinning (other modes) are still in development", icon='INFO')
+            
+# ---- Pie Menu Outils 2 - Vue 3D / Layout Hair ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
+
+            elif bpy.context.screen == bpy.data.screens["A4B-Hair"]:
+                if bpy.context.object.mode == 'OBJECT':
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Hair (Object-Mode) are still in development", icon='INFO')
+                else:
+                    # 1 - Ouest
+                    box = pie.split().box().column()
+                    box.label("Tools 2 for Hair (other modes) are still in development", icon='INFO')
+                    
+# ---- Pie Menu Outils 2 - Vue 3D / Mode Object ----
+
+            elif bpy.context.object.mode == 'OBJECT':
                 # 1 - Ouest
                 box = pie.split().box().column()
-                box.label("Tools 2 for Edit-Mode are still in development", icon='INFO') 
+                row = box.row(align=True)
+                row.label("Apply :")
+                row.operator("object.applyrotation", text="Rot", icon='MAN_ROT')# nouvelle classe
+                row.operator("object.applyscale", text="Scale", icon='MAN_SCALE')# nouvelle classe
+                # 2 - Est
+                box = pie.split().box().column()
+                row = box.row(align=True)
+                row.label("Clear :")
+                row.operator("object.location_clear", text="Loc", icon='MAN_TRANS')
+                row.operator("object.rotation_clear", text="Rot", icon='MAN_ROT')
+                row.operator("object.scale_clear", text="Scale", icon='MAN_SCALE')
+                # 3 - Sud
+                box = pie.split().box().column()
+                box.label("still in development", icon='INFO')
+                # 4 - Nord
+                box = pie.split().box().column()
+                box.operator("object.parent_set", text="Parenter", icon='LOCKED')
+                box.operator("object.parent_clear", text="Dé-Parenter", icon='UNLOCKED')
+
+# ---- Pie Menu Outils 2 - Vue 3D / Edit Mode ----
+
+            elif bpy.context.object.mode == 'EDIT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools :")
+                box.menu("MenuAlign", text="Align...", icon='ALIGN')
+                box.menu("MenuPivot", text="Pivot & 3D-Cursor...", icon='CURSOR')
+                # 2 - Est
+                box = pie.split().box().column()
+                box.label("Mark Edges :")
+                if tuple (bpy.context.tool_settings.mesh_select_mode) == (False, True, False):
+                    row = box.row(align=True)
+                    row.label("Freestyle :")
+                    row.operator("mesh.mark_freestyle_edge", text="Mark", icon="FILE_TICK").clear=False
+                    row.operator("mesh.mark_freestyle_edge", text="Un-Mark", icon="CANCEL").clear=True
+                    row = box.row(align=True)
+                    row.label("Seam (découpe UV):")
+                    row.operator("mesh.mark_seam", text="Mark", icon="FILE_TICK").clear=False
+                    row.operator("mesh.mark_seam", text="Un-Mark", icon="CANCEL").clear=True
+                    row = box.row(align=True)
+                    row.label("Lighting :")
+                    row.operator("mesh.mark_sharp", text="Flat").clear=False
+                    row.operator("mesh.mark_sharp", text="Smooth").clear=True
+                    row = box.row(align=True)
+                    row.label("SubSurf :")
+                    row.operator("transform.edge_crease", text="Adjust Crease", icon="STYLUS_PRESSURE")
+                    row = box.row(align=True)
+                    row.label("Bevel :")
+                    row.operator("transform.edge_bevelweight", text="Adjust Weight", icon="STYLUS_PRESSURE")
+                else:
+                    box.label("Please select edges to view this part")
+                # 3 - Sud
+                box = pie.split().box().column()
+                if tuple (bpy.context.tool_settings.mesh_select_mode) == (False, True, False):
+                    box.label("Select Edges similar to :")
+                    box.operator("mesh.select_similar", text="Seam (UV)").type='SEAM'
+                    box.operator("mesh.select_similar", text="Crease (SubSurf)").type='CREASE'
+                    box.operator("mesh.select_similar", text="Sharpness (Shading)").type='SHARP'
+                    box.operator("mesh.select_similar", text="FreeStyle").type='FREESTYLE_EDGE'
+                    box.operator("mesh.select_similar", text="Lenght").type='LENGTH'
+                elif tuple (bpy.context.tool_settings.mesh_select_mode) == (False, False, True):
+                    box.label("Select Faces similar to :")
+                    box.operator("mesh.select_similar", text="Material").type='MATERIAL'
+                    box.operator("mesh.select_similar", text="Area").type='AREA'
+                    box.operator("mesh.select_similar", text="Normal").type='NORMAL'
+                else:
+                    box.label("No applicable on vertices")
+                # 4 - Nord
+                box = pie.split().box().column()
+                box.label("Select :")
+                box.operator("view3d.select_border", text="Border (B)", icon='BORDER_RECT')
+                box.operator("view3d.select_circle", text="Circle (C)", icon='INLINK')
+                box.operator("view3d.select_lasso", text="Lasso (Ctrl)", icon='BORDER_LASSO')
+                box.separator()
+                box.operator("class.selectiontakorevert", text="Reverse", icon='FILE_REFRESH')
+                box.separator()
+                row = box.row(align=True)
+                row.operator("mesh.select_more", text="More", icon='ZOOMIN')
+                row.operator("mesh.select_less", text="Less", icon='ZOOMOUT')
+                box.separator()
+                row = box.row(align=True)
+                row.operator("mesh.loop_multi_select", text="Loop").ring=False
+                row.operator("mesh.loop_multi_select", text="Ring").ring=True
                 
-                    
-# ---- Pie Menu Outils 2 - Layout Sculpt ----
+# ---- Pie Menu Outils 2 - Vue 3D / Mode Sculpt ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Sculpt"] and bpy.context.area.type == 'VIEW_3D' and bpy.context.object.mode == 'SCULPT':
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Sculpt are still in development", icon='INFO') 
+            elif bpy.context.object.mode == 'SCULPT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 2 for Sculpt-Mode are still in development", icon='INFO')
+               
+# ---- Pie Menu Outils 2 - Vue 3D / Texture Painting ----
+
+            elif bpy.context.object.mode == 'TEXTURE_PAINT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 2 for Texture Painting are still in development", icon='INFO') 
             
-# ---- Pie Menu Outils 2 - Layout Retopology ----
+# ---- Pie Menu Outils 2 - Vue 3D / Vertex Painting ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Retopology"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Retopology are still in development", icon='INFO') 
+            elif bpy.context.object.mode == 'VERTEX_PAINT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 2 for Vertex Painting are still in development", icon='INFO') 
+
+# ---- Pie Menu Outils 2 - Vue 3D / Weight Painting ----
+
+            elif bpy.context.object.mode == 'WEIGHT_PAINT':
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 2 for Weight Painting are still in development", icon='INFO')               
             
+# ---- Pie Menu Outils 2 - Vue 3D / Layout Motion Tracking ----
 
-# ---- Pie Menu Outils 2 - Layout UV Editing / Image Editor ----
+            elif bpy.context.screen == bpy.data.screens["A4B-Motion Tracking"]:
+                # 1 - Ouest
+                box = pie.split().box().column()
+                box.label("Tools 2 for Motion Tracking are still in development", icon='INFO')
+            
+# ---- Pie Menu Outils 2 - Image Editor ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"] and bpy.context.area.type == 'IMAGE_EDITOR':
-    
+        elif bpy.context.area.type == 'IMAGE_EDITOR':
             # 1 - Ouest
             box = pie.split().box().column()
             box.label("Tools 2 for Image Editor are still in development", icon='INFO')
                         
-            
-# ---- Pie Menu Outils 2 - Layout UV Editing / 3D View ----
+# ---- Pie Menu Outils 2 - Node Editor ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"] and bpy.context.area.type == 'VIEW_3D':
-           box = pie.split().box().column()
-           box.label("Tools 2 for UV Editing are still in development", icon='INFO') 
-            
-# ---- Pie Menu Outils 2 - Layout "Nodal" - Node Editor ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Nodal"] and bpy.context.area.type == 'NODE_EDITOR':
-        
+        elif bpy.context.area.type == 'NODE_EDITOR':
             # 1 - Ouest
             box = pie.split().box().column()
             box.label("Tools 2 for Node Editor are still in development", icon='INFO')
       
-# ---- Pie-Menu Outils 2 - Layout Nodal - 3D view ----
+# ---- Pie Menu Outils 2 - Text Editor ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Nodal"] and bpy.context.area.type == 'VIEW_3D':
-            
+        elif bpy.context.area.type == 'TEXT_EDITOR':
             # 1 - Ouest
             box = pie.split().box().column()
-            box.label("Tools 2 for Nodal/3D view are still in development", icon='INFO')
-                                
-# ---- Pie Menu Outils 2 - Layout Scripting ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Scripting"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Scripting are still in development", icon='INFO')
-                      
-
-# ---- Pie Menu Outils 2 - Layout Texture Painting ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Texture Painting"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Texture Painting are still in development", icon='INFO') 
-
-        
-        
-# ---- Pie Menu Outils 2 - Layout Vertex Painting ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Vertex Painting"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Vertex Painting are still in development", icon='INFO') 
-
-        
-
-# ---- Pie Menu Outils 2 - Layout Weight Painting ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Weight Painting"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Weight Painting are still in development", icon='INFO') 
-
-
-# ---- Pie Menu Outils 2 - Layout Motion Tracking ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Motion Tracking"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Motion Tracking are still in development", icon='INFO') 
-
+            box.label("Tools 2 for Text Editor are still in development", icon='INFO')
 
 # ---- Pie Menu Outils 2 - Layout Video Editing ----
 
-        elif bpy.context.screen == bpy.data.screens["A4B-Video Editing"]:
-                    
+        elif bpy.context.area.type == 'SEQUENCE_EDITOR':
             # 1 - Ouest
             box = pie.split().box().column()
-            box.label("Tools 2 for Video Editing are still in development", icon='INFO') 
-            
-# ---- Pie Menu Outils 2 - Layout Animation ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Animation"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Animation are still in development", icon='INFO') 
-            
-# ---- Pie Menu Outils 2 - Layout FX ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-FX"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for FX are still in development", icon='INFO') 
-
-# ---- Pie Menu Outils 2 - Layout Skinning ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Skinning are still in development", icon='INFO')
-            
-# ---- Pie Menu Outils 2 - Layout Hair ----
-
-        elif bpy.context.screen == bpy.data.screens["A4B-Hair"]:
-                    
-            # 1 - Ouest
-            box = pie.split().box().column()
-            box.label("Tools 2 for Hair are still in development", icon='INFO') 
+            box.label("Tools 2 for Video Editing are still in development", icon='INFO')
             
 ######################################################################################################################################
 #                                                       Menus                                                                        #
@@ -2013,6 +2063,7 @@ def register():
     bpy.utils.register_class(ShadingVariable)
     bpy.utils.register_class(ClassSelectionTakoRevert)
     bpy.utils.register_class(ClassSwitchNodal)
+    bpy.utils.register_class(ClassSwitchPaintingModes)
     bpy.utils.register_class(ClassSwitchOutlinerProperties)
     # Classes Pie Tools
     bpy.utils.register_class(AlignX)
@@ -2097,6 +2148,7 @@ def unregister():
     bpy.utils.unregister_class(ShadingVariable)
     bpy.utils.unregister_class(ClassSelectionTakoRevert)
     bpy.utils.unregister_class(ClassSwitchNodal)
+    bpy.utils.unregister_class(ClassSwitchPaintingModes)
     bpy.utils.unregister_class(ClassSwitchOutlinerProperties)
     # Classes Pie Tools
     bpy.utils.unregister_class(AlignX)
@@ -2148,79 +2200,3 @@ def unregister():
            
 if __name__ == "__main__":
     register()
-    
-
-############################################################### Tab outils TazTako
-
-#box = pie.split().column()
-#box.operator("view3d.edit_mesh_extrude_move_normal", text="Extrude Bloc")
-#box.operator("view3d.edit_mesh_extrude_individual_move", text="Extrude Individual")
-
-            
-#box.operator("object.join", text="Joindre", icon='ROTATECENTER')
-#box.operator("object.wazou_separate_looseparts", text="Separate Loose Parts", icon='ROTATECOLLECTION')# nouvelle classe
-
-
-#box.operator("object.parent_set", text="Parenter", icon='LOCKED')
-#box.operator("object.parent_clear", text="Dé-Parenter", icon='UNLOCKED')
-
-
-#row.label("Transforms :")
-#if bpy.context.object.lock_rotation[0] == False:
-#    row.operator("object.taztakolocktransforms", text="Lock", icon = 'UNLOCKED')# nouvelle classe
-#elif  bpy.context.object.lock_rotation[0] == True:
-#    row.operator("object.taztakolocktransforms", text="Un-Lock", icon = 'LOCKED')# nouvelle classe
-
-#row.label("Remettre à 0 :")
-#row.operator("object.location_clear", text="Loc", icon='MAN_TRANS')
-#row.operator("object.rotation_clear", text="Rot", icon='MAN_ROT')
-#row.operator("object.scale_clear", text="Scale", icon='MAN_SCALE')
-
-#row.label("Apply Transforms : CTRL A", icon='ERROR')
-
-
-#box.label("Dupliquer :")
-#row = box.row(align=True)
-#row.operator("object.duplicate_move", text="Normal", icon='UNLINKED')
-#row.operator("object.duplicate_move_linked", text="Linked", icon='LINKED')
-#        
-
-
-## ---- Pie Menu Outils 1 - Edit Mode ----
-
-#elif bpy.context.area.type == 'VIEW_3D' and bpy.context.object.mode == 'EDIT':
-
-
-#pie.operator("mesh.loopcut_slide", text="Loop Cut")
-
-#pie.operator("mesh.bevel", text="Bevel")
-
-#box = pie.split().column()
-#box.operator("mesh.merge", text="Merge", icon='AUTOMERGE_ON')
-#box.operator("mesh.remove_doubles", text="Remove Doubles")
-#box.operator("transform.shrink_fatten", text="Shrink Fatten (gonfler/réduire)")
-#box.operator("transform.tosphere", text="To Sphere")
-#box.operator("object.createhole", text="Hole")#nouvelle classe (Wazou ?)
-
-#pie.operator("mesh.inset", text="Inset")
-
-#pie.operator("mesh.knife_tool", text="Knife")
-
-#pie.operator("mesh.subdivide", text="Subdivide")
-
-#box = pie.split().column()
-#box.operator("view3d.edit_mesh_extrude_move_normal", text="Extrude Bloc")
-#box.operator("view3d.edit_mesh_extrude_individual_move", text="Extrude Individual")
-
-#box = pie.split().column()
-#box.operator("transform.vert_slide", text="Slide Vertex")
-#box.operator("transform.edge_slide", text="Slide Edge")
-
-#box.label("Retopo :")
-#            box.operator("mesh.laprelax", text = "Lap Relax", icon = 'LATTICE_DATA')# nouvelle classe
-#            box.operator("shrink.update", text = "Shrink-Wrap Updade", icon = 'MOD_SHRINKWRAP')
-#            box.operator("retopo.space", text="Guirlande on Loop", icon='ALIGN')# addon "Loop Tools" requis (classe créée pr l'occasion)
-#            box.operator("mesh.looptools_gstretch", text="G-Stretch (move vert. on GP)", icon='GREASEPENCIL')# addon "Loop Tools" requis
-#            box.operator("gpencil.surfsk_add_surface", text="Add Bsurface", icon = 'GREASEPENCIL')# addon "Bsurface" requis
-#            if tuple (bpy.context.tool_settings.mesh_select_mode) == (False, False, True):
-#                box.operator("mesh.tris_convert_to_quads", text="Tris -> Quads")
