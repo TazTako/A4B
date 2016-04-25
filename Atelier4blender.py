@@ -6,7 +6,7 @@
 bl_info = {
     "name": "Atelier 4 Blender (A4B)",
     "author": "TazTako (Olivier FAVRE), Lapineige, Pitiwazou (Cedric LEPILLER), Matpi",
-    "version": (0, 3 , 2),
+    "version": (0, 3 , 3),
     "blender": (2, 72, 0),
     "description": "Atelier 4 Blender",
     "warning": "This addon is still in development.",
@@ -70,6 +70,60 @@ class TazTakoClicUserPrefs(bpy.types.AddonPreferences):
             row.label(text="Le blog de l'auteur Olive/TazTako (Olivier FAVRE):")
             row.operator("wm.url_open", text="bd.olidou.com").url = "http://bd.olidou.com"
             
+######################################################################################################################################
+#                                                     Classes pour la vue 3D (pistiwique)                                            #
+######################################################################################################################################
+
+# Add property to Scene to store the view data
+class Taz_View_ProptyGrp(bpy.types.PropertyGroup):
+    taz_view_loc = FloatVectorProperty(name="Location", description="location", default=(0.0, 0.0, 0.0))
+    taz_view_rot = FloatVectorProperty(name="Rotation", description="rotation", size=4, default=(0.0, 0.0, 0.0, 0.0))   
+    taz_view_dist = FloatProperty(name="Distance", description="distance", default=10.0)
+    taz_view_shade = StringProperty(name='Shading Mode', default="")
+    taz_view_persp = StringProperty(name='Perspective', default="")
+
+# Store in memory actual property of 3D View   
+class Taz_View_Store(bpy.types.Operator):
+    """Store the current view"""
+    bl_idname = "scene.taz_view_store"
+    bl_label = "Store the current view"
+ 
+    def execute(self, context):
+        region_id = bpy.context.region.id
+ 
+        #this will loop through the areas and match the view with the same id
+        for area in bpy.context.screen.areas:           
+            for region in area.regions:
+                if region.id == region_id:
+                    view = area.spaces[0]
+        taz_view = bpy.context.window_manager.Taz_View_ProptyGrp
+        taz_view.taz_view_loc = view.region_3d.view_location
+        taz_view.taz_view_rot = view.region_3d.view_rotation
+        taz_view.taz_view_dist = view.region_3d.view_distance
+        taz_view.taz_view_shade = view.viewport_shade
+        taz_view.taz_view_persp = view.region_3d.view_perspective
+        return {'FINISHED'}
+
+# Replace actual 3D View properties by them previously stored in memory
+class Taz_View_Replace(bpy.types.Operator):
+    """Replace the current view"""
+    bl_idname = "scene.taz_view_replace"
+    bl_label = "Replace the current view"
+ 
+    def execute(self, context):
+        taz_view = bpy.context.window_manager.Taz_View_ProptyGrp           
+        region_id = bpy.context.region.id
+        for area in bpy.context.screen.areas:           
+            for region in area.regions:
+                if region.id == region_id:
+                    view = area.spaces[0]
+        view.region_3d.view_location = taz_view.taz_view_loc
+        view.region_3d.view_rotation = taz_view.taz_view_rot
+        view.region_3d.view_distance = taz_view.taz_view_dist
+        view.viewport_shade = taz_view.taz_view_shade
+        view.region_3d.view_perspective = taz_view.taz_view_persp
+        return {'FINISHED'}
+    
 ####################################################################################################################################################
 #                                                         Classes du Pie Tools                                                                     #
 ####################################################################################################################################################
@@ -647,8 +701,10 @@ class ClassLayoutAnim(bpy.types.Operator):
         layout = self.layout
         
         if bpy.context.window.screen == bpy.data.screens["A4B-Animation"]:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-FX"]
         else:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Animation"]
         return {'FINISHED'}    
 
@@ -662,8 +718,10 @@ class ClassLayoutSkin(bpy.types.Operator):
         layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Hair"]
         else:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Skinning"]
         return {'FINISHED'}    
     
@@ -677,9 +735,11 @@ class ClassLayoutEdit(bpy.types.Operator):
         layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Scene"] or bpy.context.object.mode == 'OBJECT':
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Edit Mode"]
             bpy.ops.object.mode_set(mode="EDIT")
         else:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Scene"]
             bpy.ops.object.mode_set(mode="OBJECT")
         return {'FINISHED'}
@@ -695,9 +755,11 @@ class ClassLayoutNodal(bpy.types.Operator):
         layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Nodal"]:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-UV Editing"]
             bpy.ops.object.mode_set(mode="EDIT")
         else:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Nodal"]
         return {'FINISHED'}
     
@@ -710,6 +772,7 @@ class ClassLayoutPaint(bpy.types.Operator):
     def execute(self, context):
         layout = self.layout
         
+        bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-Painting"]
         bpy.ops.object.mode_set(mode="OBJECT")
         bpy.ops.paint.texture_paint_toggle()
@@ -724,6 +787,7 @@ class ClassLayoutScripting(bpy.types.Operator):
     def execute(self, context):
         layout = self.layout
         
+        bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-Scripting"]
         return {'FINISHED'}
 
@@ -737,9 +801,11 @@ class ClassLayoutSculpt(bpy.types.Operator):
         layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Sculpt"] or bpy.context.object.mode == 'SCULPT':
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Retopology"]
             bpy.ops.object.mode_set(mode="EDIT")
         else:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Sculpt"]
             bpy.ops.object.mode_set(mode="OBJECT")
             bpy.ops.sculpt.sculptmode_toggle()
@@ -755,8 +821,10 @@ class ClassLayoutVSE(bpy.types.Operator):
         layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Video Editing"]:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Motion Tracking"]
         else:
+            bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Video Editing"]
         return {'FINISHED'}
 
@@ -957,7 +1025,6 @@ class TazTakoPieLayout(Menu):
             pie.operator("class.layoutvse", text="Video Edit", icon='SEQ_SEQUENCER')
             # 2 - Est
             pie.operator("class.layoutscripting", text="Script", icon='CONSOLE')
-                       
         else:
             # 1 - Ouest
             pie.operator("class.layoutedit", text="Scene > Edit", icon='EDITMODE_VEC_HLT')
@@ -1083,6 +1150,7 @@ class TazTakoPieView(Menu):
                 row = box.row(align=True)
                 row.operator("class.taztako_object_shading_flat", text="Flat")# nouvelle classe
                 row.operator("class.taztako_object_shading_smooth", text="Smooth")# nouvelle classe
+                box.operator("scene.taz_view_replace", text="Restore last 3D View")
                 # 5 - Nord-Ouest
                 pie.operator("view3d.view_selected", text="Zoom Selected", icon='VIEWZOOM')
                 # 6 - Nord-Est
@@ -2040,162 +2108,35 @@ addon_keymaps = []
        
 def register():
     
-    bpy.utils.register_class(TazTakoClicUserPrefs)
-    # Classes Layouts
-    bpy.utils.register_class(TazTakoScreenSetLayout)
-    bpy.utils.register_class(ClassLayoutAnim)
-    bpy.utils.register_class(ClassLayoutSkin)
-    bpy.utils.register_class(ClassLayoutEdit)
-    bpy.utils.register_class(ClassLayoutNodal)
-    bpy.utils.register_class(ClassLayoutPaint)
-    bpy.utils.register_class(ClassLayoutScripting)
-    bpy.utils.register_class(ClassLayoutSculpt)
-    bpy.utils.register_class(ClassLayoutVSE)
-    # Pie-Menus
-    bpy.utils.register_class(TazTakoPieLayout)
-    bpy.utils.register_class(TazTakoPieView)
-    bpy.utils.register_class(TazTakoPieTools1)
-    bpy.utils.register_class(TazTakoPieTools2)
-    # Classes Pie View
-    bpy.utils.register_class(ViewMenu)
-    bpy.utils.register_class(TazTakoObjectShadingFlat)
-    bpy.utils.register_class(TazTakoObjectShadingSmooth)
-    bpy.utils.register_class(ShadingVariable)
-    bpy.utils.register_class(ClassSelectionTakoRevert)
-    bpy.utils.register_class(ClassSwitchNodal)
-    bpy.utils.register_class(ClassSwitchPaintingModes)
-    bpy.utils.register_class(ClassSwitchOutlinerProperties)
-    # Classes Pie Tools
-    bpy.utils.register_class(AlignX)
-    bpy.utils.register_class(AlignY)
-    bpy.utils.register_class(AlignZ)
-    bpy.utils.register_class(AlignToX0)
-    bpy.utils.register_class(AlignToY0)
-    bpy.utils.register_class(AlignToZ0)
-    bpy.utils.register_class(AlignXLeft)
-    bpy.utils.register_class(AlignXRight)
-    bpy.utils.register_class(AlignYBack)
-    bpy.utils.register_class(AlignYFront)
-    bpy.utils.register_class(AlignZTop)
-    bpy.utils.register_class(AlignZBottom)
-    bpy.utils.register_class(LapRelax)
-    bpy.utils.register_class(UVSculptGrab)
-    bpy.utils.register_class(UVSculptRelax)
-    bpy.utils.register_class(UVSculptPinch)
-    bpy.utils.register_class(UVSculptToggle)
-    bpy.utils.register_class(ApplyRotation)
-    bpy.utils.register_class(ApplyScale)
-    bpy.utils.register_class(CreateHole)
-    bpy.utils.register_class(WazouSeparateLooseParts)
-    bpy.utils.register_class(SaveIncrementalLapineige)
-    bpy.utils.register_class(PivotToSelection)
-    bpy.utils.register_class(PivotBottom)
-    bpy.utils.register_class(PivotToGeometry)
-    bpy.utils.register_class(PivotToCursor)
-    # Menus
-    bpy.utils.register_class(MenuPivot)
-    bpy.utils.register_class(MenuAlign)
-    bpy.utils.register_class(MenuShaders)
-    bpy.utils.register_class(MenuDiversNode)
-    bpy.utils.register_class(MenuTextures)
-    bpy.utils.register_class(MenuCompositing)
-    bpy.utils.register_class(MenuModifiers)
-                               
+    bpy.utils.register_module(__name__)
+    bpy.types.WindowManager.Taz_View_ProptyGrp = bpy.props.PointerProperty(type=Taz_View_ProptyGrp)
+    
     wm = bpy.context.window_manager
-
     if wm.keyconfigs.addon:
-        
         # Pie Layouts - Ctrl + bouton 5
         km = wm.keyconfigs.addon.keymaps.new(name="Screen")
         kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON5MOUSE", "PRESS", ctrl=True).properties.name="tazpie.layouts"
-        
         # Pie Affichage - bouton 5
         km = wm.keyconfigs.addon.keymaps.new(name="Screen")
         kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON5MOUSE", "PRESS").properties.name="tazpie.view"
-        
         # Pie Tools - bouton 4
         km = wm.keyconfigs.addon.keymaps.new(name="Screen")
         kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON4MOUSE", "PRESS").properties.name="tazpie.tools1"
-        
         # Pie Tools - Ctrl + bouton 4
         km = wm.keyconfigs.addon.keymaps.new(name="Screen")
         kmi = km.keymap_items.new("wm.call_menu_pie", "BUTTON4MOUSE", "PRESS", ctrl=True).properties.name="tazpie.tools2"
-        
-        #addon_keymaps.append(km)
-        
+                
 def unregister():
     
-    bpy.utils.unregister_class(TazTakoClicUserPrefs)
-    # Layouts
-    bpy.utils.unregister_class(TazTakoScreenSetLayout)
-    bpy.utils.unregister_class(ClassLayoutAnim)
-    bpy.utils.unregister_class(ClassLayoutSkin)
-    bpy.utils.unregister_class(ClassLayoutEdit)
-    bpy.utils.unregister_class(ClassLayoutNodal)
-    bpy.utils.unregister_class(ClassLayoutPaint)
-    bpy.utils.unregister_class(ClassLayoutScripting)
-    bpy.utils.unregister_class(ClassLayoutSculpt)
-    bpy.utils.unregister_class(ClassLayoutVSE)
-    # Pie-Menus
-    bpy.utils.unregister_class(TazTakoPieLayout)
-    bpy.utils.unregister_class(TazTakoPieView)
-    bpy.utils.unregister_class(TazTakoPieTools1)
-    bpy.utils.unregister_class(TazTakoPieTools2)
-    # Classes Pie View
-    bpy.utils.unregister_class(ViewMenu)
-    bpy.utils.unregister_class(TazTakoObjectShadingFlat)
-    bpy.utils.unregister_class(TazTakoObjectShadingSmooth)
-    bpy.utils.unregister_class(ShadingVariable)
-    bpy.utils.unregister_class(ClassSelectionTakoRevert)
-    bpy.utils.unregister_class(ClassSwitchNodal)
-    bpy.utils.unregister_class(ClassSwitchPaintingModes)
-    bpy.utils.unregister_class(ClassSwitchOutlinerProperties)
-    # Classes Pie Tools
-    bpy.utils.unregister_class(AlignX)
-    bpy.utils.unregister_class(AlignY)
-    bpy.utils.unregister_class(AlignZ)
-    bpy.utils.unregister_class(AlignToX0)
-    bpy.utils.unregister_class(AlignToY0)
-    bpy.utils.unregister_class(AlignToZ0)
-    bpy.utils.unregister_class(AlignXLeft)
-    bpy.utils.unregister_class(AlignXRight)
-    bpy.utils.unregister_class(AlignYBack)
-    bpy.utils.unregister_class(AlignYFront)
-    bpy.utils.unregister_class(AlignZTop)
-    bpy.utils.unregister_class(AlignZBottom)
-    bpy.utils.unregister_class(ApplyRotation)
-    bpy.utils.unregister_class(ApplyScale)
-    bpy.utils.unregister_class(CreateHole)
-    bpy.utils.unregister_class(WazouSeparateLooseParts)
-    bpy.utils.unregister_class(SaveIncrementalLapineige)
-    bpy.utils.unregister_class(PivotToSelection)
-    bpy.utils.unregister_class(PivotBottom)
-    bpy.utils.unregister_class(PivotToGeometry)
-    bpy.utils.unregister_class(PivotToCursor)
-    bpy.utils.unregister_class(UVSculptGrab)
-    bpy.utils.unregister_class(UVSculptRelax)
-    bpy.utils.unregister_class(UVSculptPinch)
-    bpy.utils.unregister_class(UVSculptToggle)
-    bpy.utils.unregister_class(LapRelax)
-    # Menus
-    bpy.utils.unregister_class(MenuPivot)
-    bpy.utils.unregister_class(MenuAlign)
-    bpy.utils.unregister_class(MenuShaders)
-    bpy.utils.unregister_class(MenuDiversNode)
-    bpy.utils.unregister_class(MenuTextures)
-    bpy.utils.unregister_class(MenuCompositing)
-    bpy.utils.unregister_class(MenuModifiers)                    
+    del bpy.types.WindowManager.Taz_View_ProptyGrp
+    bpy.utils.unregister_module(__name__)
         
     wm = bpy.context.window_manager
-
     if wm.keyconfigs.addon:
         for km in addon_keymaps:
             for kmi in km.keymap_items:
                 km.keymap_items.remove(kmi)
-
             wm.keyconfigs.addon.keymaps.remove(km)
-
-    # clear the list
     del addon_keymaps[:]
            
 if __name__ == "__main__":
