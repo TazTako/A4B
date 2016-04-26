@@ -33,43 +33,51 @@ class TazTakoClicUserPrefs(bpy.types.AddonPreferences):
     bl_idname = __name__
         
     bpy.types.Scene.Enable_Install = bpy.props.BoolProperty(default=False)
-    bpy.types.Scene.Enable_AvertTab = bpy.props.BoolProperty(default=False)
-    bpy.types.Scene.Enable_AvertLoopTools = bpy.props.BoolProperty(default=False)
-    bpy.types.Scene.Enable_AvertBsurfaces = bpy.props.BoolProperty(default=False)
-    bpy.types.Scene.Enable_AvertIce = bpy.props.BoolProperty(default=False)
+    bpy.types.Scene.Enable_KeyMap = bpy.props.BoolProperty(default=False)
     bpy.types.Scene.Enable_URL = bpy.props.BoolProperty(default=False)
+    bpy.types.Scene.Enable_Prefs = bpy.props.BoolProperty(default=False)
+    bpy.types.Scene.Enable_3DFullAuto = bpy.props.BoolProperty(default=False)
+    
             
     def draw(self, context):
         layout = self.layout
         
-        layout.prop(context.scene, "Enable_Install", text="Installez le start-up fourni avant de faire joujou !", icon="ERROR")
+        layout.prop(context.scene, "Enable_Install", text="!! 1st install !!", icon="ERROR")
         if context.scene.Enable_Install:
-            layout.label(text="Lorsque vous installez cet addon, mes pies vont rechercher des layouts de screens pré-définis.")
-            layout.label(text="Ceux-ci sont fournis dans le fichier .zip (startup_A4B.blend).")     
+            layout.label(text="Most of the 'pie-menus' used in 'Atelier 4 Blender' (A4B) need an associated 'screen layout' to work,")
+            layout.label(text="if you don't install these 'screen-layouts', A4B will not work properly.")
             layout.label(text="")
-            layout.label(text="Si vous ne chargez pas ses screens, mes pie ne fonctionneront pas,")
-            layout.label(text="car j'ai choisi d'adopter une philosophie de travail en atelier similaire à FreeCAD.")
+            layout.label(text="They are all in the 'startup_A4B.blend' provided.")     
+            layout.label(text="First be sure to activate 'Load UI' and load this file.")
             layout.label(text="")
-            layout.label(text="A chaque atelier (screen layout) correspond une étape du processus de la 3D (modé, sculpt, retopo, UV, shading, FX...),")
-            layout.label(text="et à chaque atelier, les pie changent de forme pour s'adapter au mieux à votre workflow.")
-                                    
-        layout.prop(context.scene, "Enable_AvertTab", text="KeyMap par défaut", icon="QUESTION")
-        if context.scene.Enable_AvertTab:
-            layout.label(text="La keymap utilise les boutons 4 & 5 de la souris associés à la touche Ctrl:")
-            layout.label(text="le bouton 5 affiche le pie d'affichage")     
-            layout.label(text="le bouton 5 (associé à Ctrl) affiche le pie des ateliers")
-            layout.label(text="le bouton 4 affiche le 1er pie d'outils")
-            layout.label(text="le bouton 4 (associé à Ctrl) affiche le 2ème pie d'outils")
+            layout.label(text="Enjoy :)")
+            
+        layout.prop(context.scene, "Enable_KeyMap", text="Default KeyMap", icon="QUESTION")
+        if context.scene.Enable_KeyMap:
+            layout.label(text="By default, A4B keymap use buttons 4 & 5 of any compatible mouse.")
+            layout.label(text="The button 5 enable the 'view pie'")     
+            layout.label(text="The button 5 (with Ctrl) enable the 'atelier pie'")
+            layout.label(text="The button 4 enable the 1st 'tools pie'")
+            layout.label(text="The button 4 (with Ctrl) enable the 2nd 'tools pie'")
                     
-        layout.prop(context.scene, "Enable_URL", text="Remerciements et Liens", icon="URL")
+        layout.prop(context.scene, "Enable_URL", text="Thanks and links", icon="URL")
         if context.scene.Enable_URL:
             row = layout.row(align=True)
-            row.label(text="Cet addon n'aurait jamais vu le jour sans le soutien de la communauté BlenderLounge :")
-            row.operator("wm.url_open", text="forum BlenderLounge").url = "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=1524"
+            row.label(text="A4B has been done with the coollaborative and free work, of many coders, found on BlenderLounge :")
+            row.operator("wm.url_open", text="BlenderLounge topic").url = "http://blenderlounge.fr/forum/viewtopic.php?f=26&t=1524"
             row = layout.row(align=True)
-            row.label(text="Le blog de l'auteur Olive/TazTako (Olivier FAVRE):")
+            row.label(text="Author's blog (Olivier FAVRE alias Olive/TazTako ):")
             row.operator("wm.url_open", text="bd.olidou.com").url = "http://bd.olidou.com"
-            
+        
+        layout.prop(context.scene, "Enable_Prefs", text="Preferences", icon="URL")
+        if context.scene.Enable_Prefs:
+            layout.label(text="Experimental : if you check the option 'Auto3D-View', A4B will update your 3D view each time you change Atelier (screen-layout).")
+            layout.label(text="Instead, (option OFF) you will have to do it manually via the button called 'Restore last 3D View'.")
+            if not context.scene.Enable_3DFullAuto:
+                layout.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is OFF > switch to ON", icon="COLOR_RED")
+            if context.scene.Enable_3DFullAuto:
+                layout.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is ON > switch to OFF", icon="COLOR_GREEN")
+                                   
 ######################################################################################################################################
 #                                                     Classes pour la vue 3D (pistiwique)                                            #
 ######################################################################################################################################
@@ -90,7 +98,6 @@ class Taz_View_Store(bpy.types.Operator):
  
     def execute(self, context):
         region_id = bpy.context.region.id
- 
         #this will loop through the areas and match the view with the same id
         for area in bpy.context.screen.areas:           
             for region in area.regions:
@@ -109,10 +116,11 @@ class Taz_View_Replace(bpy.types.Operator):
     """Replace the current view"""
     bl_idname = "scene.taz_view_replace"
     bl_label = "Replace the current view"
- 
+
     def execute(self, context):
-        taz_view = bpy.context.window_manager.Taz_View_ProptyGrp           
+        taz_view = bpy.context.window_manager.Taz_View_ProptyGrp
         region_id = bpy.context.region.id
+        #this will loop through the areas and match the view with the same id
         for area in bpy.context.screen.areas:           
             for region in area.regions:
                 if region.id == region_id:
@@ -123,7 +131,7 @@ class Taz_View_Replace(bpy.types.Operator):
         view.viewport_shade = taz_view.taz_view_shade
         view.region_3d.view_perspective = taz_view.taz_view_persp
         return {'FINISHED'}
-    
+
 ####################################################################################################################################################
 #                                                         Classes du Pie Tools                                                                     #
 ####################################################################################################################################################
@@ -676,7 +684,7 @@ class UVSculptToggle(bpy.types.Operator):
         return {'FINISHED'}
     
 ##################################################################################################################
-#                                  Classes appelant les Layouts (via la touche "Tab")                            #               
+#                                             Classes appelant les Layouts                                       #               
 ##################################################################################################################
 
 # Change Layout
@@ -698,14 +706,19 @@ class ClassLayoutAnim(bpy.types.Operator):
     bl_label = "Class Layout Animation"
     
     def execute(self, context):
-        layout = self.layout
         
         if bpy.context.window.screen == bpy.data.screens["A4B-Animation"]:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-FX"]
+            bpy.ops.object.mode_set(mode="OBJECT")
+#            if context.scene.Enable_3DFullAuto:
+            bpy.ops.scene.taz_view_replace()
         else:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Animation"]
+            bpy.ops.object.mode_set(mode="OBJECT")
+#            if context.scene.Enable_3DFullAuto:
+            bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}    
 
 # Switch between layouts "A4B-Skinning" & "A4B-Hair"
@@ -715,14 +728,17 @@ class ClassLayoutSkin(bpy.types.Operator):
     bl_label = "Class Layout Skin"
     
     def execute(self, context):
-        layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Hair"]
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         else:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Skinning"]
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}    
     
 # Switch between layouts "A4B-Edit Mode" & "A4B-Scene"
@@ -732,16 +748,19 @@ class ClassLayoutEdit(bpy.types.Operator):
     bl_label = "Class Layout Edit"
     
     def execute(self, context):
-        layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Scene"] or bpy.context.object.mode == 'OBJECT':
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Edit Mode"]
             bpy.ops.object.mode_set(mode="EDIT")
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         else:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Scene"]
             bpy.ops.object.mode_set(mode="OBJECT")
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
     
 
@@ -752,15 +771,18 @@ class ClassLayoutNodal(bpy.types.Operator):
     bl_label = "Class Layout Nodal"
     
     def execute(self, context):
-        layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Nodal"]:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-UV Editing"]
             bpy.ops.object.mode_set(mode="EDIT")
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         else:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Nodal"]
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
     
 # Switch to layout "A4B-Painting"
@@ -770,12 +792,13 @@ class ClassLayoutPaint(bpy.types.Operator):
     bl_label = "Class Layout Paint"
     
     def execute(self, context):
-        layout = self.layout
         
         bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-Painting"]
         bpy.ops.object.mode_set(mode="OBJECT")
         bpy.ops.paint.texture_paint_toggle()
+        if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}    
     
 # Switch to layout "A4B-Scripting"
@@ -785,10 +808,11 @@ class ClassLayoutScripting(bpy.types.Operator):
     bl_label = "Class Layout Scripting"
     
     def execute(self, context):
-        layout = self.layout
         
         bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-Scripting"]
+        if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
 
 # Switch between layouts "A4B-Sculpt" & "A4B-Retopology"
@@ -798,17 +822,20 @@ class ClassLayoutSculpt(bpy.types.Operator):
     bl_label = "Class Layout Sculpt"
     
     def execute(self, context):
-        layout = self.layout
         
         if bpy.context.screen == bpy.data.screens["A4B-Sculpt"] or bpy.context.object.mode == 'SCULPT':
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Retopology"]
             bpy.ops.object.mode_set(mode="EDIT")
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         else:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Sculpt"]
             bpy.ops.object.mode_set(mode="OBJECT")
             bpy.ops.sculpt.sculptmode_toggle()
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
  
 # Switch between layouts "A4B-Video Sequence Editor" & "A4B-Motion Tracking"
@@ -818,14 +845,17 @@ class ClassLayoutVSE(bpy.types.Operator):
     bl_label = "Class Layout VSE"
     
     def execute(self, context):
-        layout = self.layout
-        
+                
         if bpy.context.screen == bpy.data.screens["A4B-Video Editing"]:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Motion Tracking"]
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         else:
             bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Video Editing"]
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
 
 ######################################################################################################################################
@@ -1150,7 +1180,14 @@ class TazTakoPieView(Menu):
                 row = box.row(align=True)
                 row.operator("class.taztako_object_shading_flat", text="Flat")# nouvelle classe
                 row.operator("class.taztako_object_shading_smooth", text="Smooth")# nouvelle classe
-                box.operator("scene.taz_view_replace", text="Restore last 3D View")
+                # Gestion de la Vue 3D entre chaque switch d'atelier
+                if context.scene.Enable_3DFullAuto:
+                    box.separator()
+                    box.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is ON > OFF", icon="COLOR_GREEN")
+                if not context.scene.Enable_3DFullAuto:
+                    box.separator()
+                    box.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is OFF > ON", icon="COLOR_RED")
+                    box.operator("scene.taz_view_replace", text="Restore last 3D View")
                 # 5 - Nord-Ouest
                 pie.operator("view3d.view_selected", text="Zoom Selected", icon='VIEWZOOM')
                 # 6 - Nord-Est
