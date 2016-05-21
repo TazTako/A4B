@@ -6,7 +6,7 @@
 bl_info = {
     "name": "Atelier 4 Blender (A4B)",
     "author": "TazTako (Olivier FAVRE), Lapineige, Pitiwazou (Cedric LEPILLER), Matpi",
-    "version": (0, 3 , 3),
+    "version": (0, 3 , 6),
     "blender": (2, 72, 0),
     "description": "Atelier 4 Blender",
     "warning": "This addon is still in development.",
@@ -38,7 +38,6 @@ class TazTakoClicUserPrefs(bpy.types.AddonPreferences):
     bpy.types.Scene.Enable_Prefs = bpy.props.BoolProperty(default=False)
     bpy.types.Scene.Enable_3DFullAuto = bpy.props.BoolProperty(default=False)
     
-            
     def draw(self, context):
         layout = self.layout
         
@@ -48,7 +47,7 @@ class TazTakoClicUserPrefs(bpy.types.AddonPreferences):
             layout.label(text="if you don't install these 'screen-layouts', A4B will not work properly.")
             layout.label(text="")
             layout.label(text="They are all in the 'startup_A4B.blend' provided.")     
-            layout.label(text="First be sure to activate 'Load UI' and load this file.")
+            layout.label(text="Don't forget to activate 'Load UI' before loading this file.")
             layout.label(text="")
             layout.label(text="Enjoy :)")
             
@@ -468,86 +467,51 @@ class WazouSeparateLooseParts(bpy.types.Operator):
 class PivotToSelection(bpy.types.Operator):  
     """Move Pivot to Selection """
     bl_idname = "object.pivot2selection"  
-    bl_label = "Pivot To Selection"  
+    bl_label = "Move Pivot To Selection"  
   
     def execute(self, context):
-        saved_location = bpy.context.scene.cursor_location.copy()
-        bpy.ops.view3d.snap_cursor_to_selected()
-        bpy.ops.object.mode_set(mode = 'OBJECT')
-        bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-        bpy.context.scene.cursor_location = saved_location
-        bpy.ops.object.mode_set(mode = 'EDIT')
-        return {'FINISHED'}
-
-# Pivot to Bottom (Modes Objet or Edit)
-class PivotBottom(bpy.types.Operator):  
-    """Move Pivot to Bottom of Geometry"""
-    bl_idname = "object.pivotobottom"  
-    bl_label = "Pivot To Bottom"  
-  
-    def execute(self, context):
-        
-        if bpy.context.object.mode == 'OBJECT':
-            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-            bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-            o=bpy.context.active_object
-            init=0
-            for x in o.data.vertices:
-                 if init==0:
-                     a=x.co.z
-                     init=1
-                 elif x.co.z<a:
-                     a=x.co.z
-                     
-            for x in o.data.vertices:
-                 x.co.z-=a
-
-            o.location.z+=a
-            
-        if bpy.context.object.mode == 'EDIT':
+        if bpy.context.object.mode == "OBJECT":
+            saved_location = bpy.context.scene.cursor_location.copy()
+            bpy.ops.view3d.snap_cursor_to_selected()
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+            bpy.context.scene.cursor_location = saved_location
+        else:
+            saved_location = bpy.context.scene.cursor_location.copy()
+            bpy.ops.view3d.snap_cursor_to_selected()
             bpy.ops.object.mode_set(mode = 'OBJECT')
-            bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-            bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-            o=bpy.context.active_object
-            init=0
-            for x in o.data.vertices:
-                 if init==0:
-                     a=x.co.z
-                     init=1
-                 elif x.co.z<a:
-                     a=x.co.z
-                     
-            for x in o.data.vertices:
-                 x.co.z-=a
-
-            o.location.z+=a 
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+            bpy.context.scene.cursor_location = saved_location
             bpy.ops.object.mode_set(mode = 'EDIT')
-            
         return {'FINISHED'}
 
-
-# Pivot to geometry (évite de repasser en mode object)
+# Pivot to geometry
 class PivotToGeometry(bpy.types.Operator):  
     """Move Pivot to Center of Geometry"""
     bl_idname = "object.pivot2geometry"  
     bl_label = "Pivot To Geometry"  
   
     def execute(self, context):
-        bpy.ops.object.mode_set(mode = 'OBJECT')
-        bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
-        bpy.ops.object.mode_set(mode = 'EDIT')
+        if bpy.context.object.mode == "OBJECT":
+            bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
+        else:
+            bpy.ops.object.mode_set(mode = 'OBJECT')
+            bpy.ops.object.origin_set(type='ORIGIN_GEOMETRY')
+            bpy.ops.object.mode_set(mode = 'EDIT')
         return {'FINISHED'}
 
-# Pivot to 3D-Cursor (évite de repasser en mode object)
+# Pivot to 3D-Cursor
 class PivotToCursor(bpy.types.Operator):  
     """Move Pivot to 3D-Cursor"""
     bl_idname = "object.pivot2cursor"  
     bl_label = "Pivot To 3D-Cursor"  
   
     def execute(self, context):
-        bpy.ops.object.mode_set(mode = 'OBJECT')
-        bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
-        bpy.ops.object.mode_set(mode = 'EDIT')
+        if bpy.context.object.mode == "OBJECT":
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+        else:
+            bpy.ops.object.mode_set(mode = 'OBJECT')
+            bpy.ops.object.origin_set(type='ORIGIN_CURSOR')
+            bpy.ops.object.mode_set(mode = 'EDIT')
         return {'FINISHED'}
 
 # LapRelax
@@ -699,107 +663,83 @@ class TazTakoScreenSetLayout(bpy.types.Operator):
     def invoke(self,context,event):
         return self.execute(context)
     
-# Switch between layouts "A4B-Animation" & "A4B-FX"
-class ClassLayoutAnim(bpy.types.Operator):
-    """Switch between layout "A4B-Animation" & "A4B-FX" """
-    bl_idname = "class.layoutanim"
-    bl_label = "Class Layout Animation"
+# Switch to layout "A4B-Scene"
+class ClassLayoutScene(bpy.types.Operator):
+    """Load layout "A4B-Scene" """
+    bl_idname = "class.layoutscene"
+    bl_label = "Class Layout Scene"
     
     def execute(self, context):
         
-        if bpy.context.window.screen == bpy.data.screens["A4B-Animation"]:
+        if bpy.context.area.type == 'VIEW_3D':
             bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-FX"]
-            bpy.ops.object.mode_set(mode="OBJECT")
-#            if context.scene.Enable_3DFullAuto:
-            bpy.ops.scene.taz_view_replace()
-        else:
-            bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-Animation"]
-            bpy.ops.object.mode_set(mode="OBJECT")
-#            if context.scene.Enable_3DFullAuto:
+        bpy.context.window.screen = bpy.data.screens["A4B-Scene"]
+        bpy.ops.object.mode_set(mode="OBJECT")
+        if context.scene.Enable_3DFullAuto:
             bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}    
-
-# Switch between layouts "A4B-Skinning" & "A4B-Hair"
-class ClassLayoutSkin(bpy.types.Operator):
-    """Switch between layout "A4B-Skinning" & "A4B-Hair" """
-    bl_idname = "class.layoutskin"
-    bl_label = "Class Layout Skin"
     
-    def execute(self, context):
-        
-        if bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
-            bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-Hair"]
-            if context.scene.Enable_3DFullAuto:
-                bpy.ops.scene.taz_view_replace()
-        else:
-            bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-Skinning"]
-            if context.scene.Enable_3DFullAuto:
-                bpy.ops.scene.taz_view_replace()
-        return {'FINISHED'}    
-    
-# Switch between layouts "A4B-Edit Mode" & "A4B-Scene"
-class ClassLayoutEdit(bpy.types.Operator):
-    """Switch between layout "A4B-Scene" & "A4B-Edit" """
-    bl_idname = "class.layoutedit"
-    bl_label = "Class Layout Edit"
-    
-    def execute(self, context):
-        
-        if bpy.context.screen == bpy.data.screens["A4B-Scene"] or bpy.context.object.mode == 'OBJECT':
-            bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-Edit Mode"]
-            bpy.ops.object.mode_set(mode="EDIT")
-            if context.scene.Enable_3DFullAuto:
-                bpy.ops.scene.taz_view_replace()
-        else:
-            bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-Scene"]
-            bpy.ops.object.mode_set(mode="OBJECT")
-            if context.scene.Enable_3DFullAuto:
-                bpy.ops.scene.taz_view_replace()
-        return {'FINISHED'}
-    
-
-# Switch between layouts "A4B-Nodal" & "A4B-UV Editing"
+# Switch to layout "A4B-Nodal"
 class ClassLayoutNodal(bpy.types.Operator):
-    """Switch between layouts "A4B-Nodal" & "A4B-UV Editing" """
+    """Load layout "A4B-Nodal" """
     bl_idname = "class.layoutnodal"
     bl_label = "Class Layout Nodal"
     
     def execute(self, context):
         
-        if bpy.context.screen == bpy.data.screens["A4B-Nodal"]:
+        if bpy.context.area.type == 'VIEW_3D':
             bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-UV Editing"]
-            bpy.ops.object.mode_set(mode="EDIT")
-            if context.scene.Enable_3DFullAuto:
-                bpy.ops.scene.taz_view_replace()
-        else:
-            bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-Nodal"]
-            if context.scene.Enable_3DFullAuto:
-                bpy.ops.scene.taz_view_replace()
-        return {'FINISHED'}
-    
-# Switch to layout "A4B-Painting"
-class ClassLayoutPaint(bpy.types.Operator):
-    """Switch to layout "A4B-Painting" """
-    bl_idname = "class.layoutpaint"
-    bl_label = "Class Layout Paint"
+        bpy.context.window.screen = bpy.data.screens["A4B-Nodal"]
+        bpy.ops.object.mode_set(mode="OBJECT")
+        if context.scene.Enable_3DFullAuto:
+            bpy.ops.scene.taz_view_replace()
+        return {'FINISHED'}    
+
+# Switch to layout "A4B-UV Editing"
+class ClassLayoutNodal(bpy.types.Operator):
+    """Load layout "A4B-UV Editing" """
+    bl_idname = "class.layoutuv"
+    bl_label = "Class Layout UV"
     
     def execute(self, context):
         
-        bpy.ops.scene.taz_view_store()
-        bpy.context.window.screen = bpy.data.screens["A4B-Painting"]
-        bpy.ops.object.mode_set(mode="OBJECT")
-        bpy.ops.paint.texture_paint_toggle()
+        if bpy.context.area.type == 'VIEW_3D':
+            bpy.ops.scene.taz_view_store()
+        bpy.context.window.screen = bpy.data.screens["A4B-UV Editing"]
+        bpy.ops.object.mode_set(mode="EDIT")
         if context.scene.Enable_3DFullAuto:
-                bpy.ops.scene.taz_view_replace()
-        return {'FINISHED'}    
+            bpy.ops.scene.taz_view_replace()
+        return {'FINISHED'}
+
+# Switch to layout "A4B-Skinning"
+class ClassLayoutSkin(bpy.types.Operator):
+    """Switch to layout "A4B-Skinning" """
+    bl_idname = "class.layoutskin"
+    bl_label = "Class Layout Skin"
+    
+    def execute(self, context):
+        
+        if bpy.context.area.type == 'VIEW_3D':
+            bpy.ops.scene.taz_view_store()
+        bpy.context.window.screen = bpy.data.screens["A4B-Skinning"]
+        if context.scene.Enable_3DFullAuto:
+            bpy.ops.scene.taz_view_replace()
+        return {'FINISHED'}
+
+# Switch to layout "A4B-Hair"
+class ClassLayoutHair(bpy.types.Operator):
+    """Switch to layout "A4B-Hair" """
+    bl_idname = "class.layouthair"
+    bl_label = "Class Layout Hair"
+    
+    def execute(self, context):
+        
+        if bpy.context.area.type == 'VIEW_3D':
+            bpy.ops.scene.taz_view_store()
+        bpy.context.window.screen = bpy.data.screens["A4B-Hair"]
+        if context.scene.Enable_3DFullAuto:
+            bpy.ops.scene.taz_view_replace()
+        return {'FINISHED'}
     
 # Switch to layout "A4B-Scripting"
 class ClassLayoutScripting(bpy.types.Operator):
@@ -809,35 +749,44 @@ class ClassLayoutScripting(bpy.types.Operator):
     
     def execute(self, context):
         
-        bpy.ops.scene.taz_view_store()
+        if bpy.context.area.type == 'VIEW_3D':
+            bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-Scripting"]
         if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
-        return {'FINISHED'}
+        return {'FINISHED'}    
 
-# Switch between layouts "A4B-Sculpt" & "A4B-Retopology"
-class ClassLayoutSculpt(bpy.types.Operator):
-    """Switch between A4B-Sculpt & A4B-Retopo"""
-    bl_idname = "class.layoutsculpt"
-    bl_label = "Class Layout Sculpt"
+# Switch between layouts "A4B-Modelisation" & "A4B-Retopo"
+class ClassLayoutEdit(bpy.types.Operator):
+    """Switch between layout "A4B-Modelisation" & "A4B-Retopo" """
+    bl_idname = "class.layoutmod"
+    bl_label = "Class Layout Modelisation"
     
     def execute(self, context):
         
-        if bpy.context.screen == bpy.data.screens["A4B-Sculpt"] or bpy.context.object.mode == 'SCULPT':
-            bpy.ops.scene.taz_view_store()
+        if bpy.context.screen == bpy.data.screens["A4B-Modelisation"] and bpy.context.object.mode == "EDIT":
+            if bpy.context.area.type == 'VIEW_3D':
+                bpy.ops.scene.taz_view_store()
+            bpy.context.window.screen = bpy.data.screens["A4B-Retopology"]
+            bpy.ops.object.mode_set(mode="EDIT")
+            if context.scene.Enable_3DFullAuto:
+                bpy.ops.scene.taz_view_replace()
+        elif bpy.context.screen == bpy.data.screens["A4B-Modelisation"] and bpy.context.object.mode == "SCULPT":
+            if bpy.context.area.type == 'VIEW_3D':
+                bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Retopology"]
             bpy.ops.object.mode_set(mode="EDIT")
             if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
         else:
-            bpy.ops.scene.taz_view_store()
-            bpy.context.window.screen = bpy.data.screens["A4B-Sculpt"]
-            bpy.ops.object.mode_set(mode="OBJECT")
-            bpy.ops.sculpt.sculptmode_toggle()
+            if bpy.context.area.type == 'VIEW_3D':
+                bpy.ops.scene.taz_view_store()
+            bpy.context.window.screen = bpy.data.screens["A4B-Modelisation"]
+            bpy.ops.object.mode_set(mode="EDIT")
             if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
- 
+    
 # Switch between layouts "A4B-Video Sequence Editor" & "A4B-Motion Tracking"
 class ClassLayoutVSE(bpy.types.Operator):
     """Switch between layouts "A4B-VSE" and "A4B-Motion Tracking" """
@@ -847,12 +796,14 @@ class ClassLayoutVSE(bpy.types.Operator):
     def execute(self, context):
                 
         if bpy.context.screen == bpy.data.screens["A4B-Video Editing"]:
-            bpy.ops.scene.taz_view_store()
+            if bpy.context.area.type == 'VIEW_3D':
+                bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Motion Tracking"]
             if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
         else:
-            bpy.ops.scene.taz_view_store()
+            if bpy.context.area.type == 'VIEW_3D':
+                bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Video Editing"]
             if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
@@ -985,6 +936,22 @@ class ClassSwitchPaintingModes(bpy.types.Operator):
             bpy.ops.paint.texture_paint_toggle()
         return {'FINISHED'}
     
+# Raccourcis vers layouts "A4B-Modelisation" ou "A4B-Retopology" depuis le Sculpt mode
+class ClassSwitchPaintingModes(bpy.types.Operator):
+    """Shortcut to layouts "A4B-Modelisation" or "A4B-Retopology" from Sculpt mode"""
+    bl_idname = "class.shortcutsculpt"
+    bl_label = "Class Shortcut Sculpt"
+    
+    def execute(self, context):
+        layout = self.layout
+               
+        bpy.ops.scene.taz_view_store()
+        bpy.context.window.screen = bpy.data.screens["A4B-Modelisation"]
+        bpy.ops.object.mode_set(mode="SCULPT")
+        if context.scene.Enable_3DFullAuto:
+            bpy.ops.scene.taz_view_replace()
+        return {'FINISHED'}
+      
 # Shading Variable (bbox, wireframe, solid, textured, rendered)
 class ShadingVariable(bpy.types.Operator):
     """Tooltip"""
@@ -1052,26 +1019,38 @@ class TazTakoPieLayout(Menu):
         
         if not bpy.context.object:
             # 1 - Ouest
-            pie.operator("class.layoutvse", text="Video Edit", icon='SEQ_SEQUENCER')
+            pie.operator("class.layoutscene", text="Scene", icon='WORLD_DATA')
             # 2 - Est
-            pie.operator("class.layoutscripting", text="Script", icon='CONSOLE')
-        else:
-            # 1 - Ouest
-            pie.operator("class.layoutedit", text="Scene > Edit", icon='EDITMODE_VEC_HLT')
-            # 2 - Est
-            pie.operator("class.layoutpaint", text="Painting", icon='TPAINT_HLT')
+            pie.separator()
             # 3 - Sud
             pie.operator("class.layoutvse", text="Video Edit > Motion Track", icon='SEQ_SEQUENCER')
             # 4 - Nord
-            pie.operator("class.layoutnodal", text="Nodal > UV", icon='MATERIAL')
+            pie.operator("class.layoutnodal", text="Nodal", icon='MATERIAL')
             # 5 - Nord-Ouest
-            pie.operator("class.layoutsculpt", text="Sculpt > Retopo", icon='SCULPTMODE_HLT')
+            pie.separator()
             # 6 - Nord-Est
-            pie.operator("class.layoutskin", text="Skin > Hair", icon='BONE_DATA')
+            pie.separator()
             # 7 - Sud-Ouest
             pie.operator("class.layoutscripting", text="Script", icon='CONSOLE')
             # 8 - Sud-Est
-            pie.operator("class.layoutanim", text="Anim > FX", icon='ANIM')
+            
+        else:
+            # 1 - Ouest
+            pie.operator("class.layoutscene", text="Scene", icon='WORLD_DATA')
+            # 2 - Est
+            pie.operator("class.layoutskin", text="Skinning", icon='BONE_DATA')
+            # 3 - Sud
+            pie.operator("class.layoutvse", text="Video Edit > Motion Track", icon='SEQ_SEQUENCER')
+            # 4 - Nord
+            pie.operator("class.layoutnodal", text="Nodal", icon='MATERIAL')
+            # 5 - Nord-Ouest
+            pie.operator("class.layoutmod", text="Mod > Retopo", icon='EDITMODE_VEC_HLT')
+            # 6 - Nord-Est
+            pie.operator("class.layoutuv", text="UV", icon='ASSET_MANAGER')
+            # 7 - Sud-Ouest
+            pie.operator("class.layoutscripting", text="Script", icon='CONSOLE')
+            # 8 - Sud-Est
+            pie.operator("class.layouthair", text="Hair", icon='HAIR')
             
 ####################################################################################################################################################
 #                                               Pie Menu Vew - Gestion affichage (bouton 5)                                                        #
@@ -1091,7 +1070,35 @@ class TazTakoPieView(Menu):
         if bpy.context.area.type == 'VIEW_3D':
             if not bpy.context.object:
                 # 1 - Ouest
+                box = pie.split().column()
+                row = box.row(align=True)
+                row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')# nouvelle classe (Lapineige)
+                row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
+                # 2 - Est
+                box = pie.split().column()
+                row = box.row(align=True)
+                row.operator("view3d.render_border", text="Render Border", icon='RENDER_REGION')
+                row.operator("view3d.clear_render_border", text="Clear", icon='CANCEL')
+                # 3 - Sud
+                pie.separator()
+                # 4 - Nord
+                box = pie.split().column()
+                # Shading
+                row = box.row(align=True)
+                row.operator("object.shadingvariable", icon="BBOX").variable="BOUNDBOX"
+                row.operator("object.shadingvariable", icon="WIRE").variable="WIREFRAME"
+                row.operator("object.shadingvariable", icon="SOLID").variable="SOLID"
+                row.operator("object.shadingvariable", icon="POTATO").variable="TEXTURED"
+                row.operator("object.shadingvariable", icon="MATERIAL").variable="MATERIAL"
+                row.operator("object.shadingvariable", icon="SMOOTH").variable="RENDERED"
+                box.operator("scene.taz_view_replace", text="Restore last View")
+                # 5 - Nord-Ouest
+                pie.separator()
+                # 6 - Nord-Est
                 pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
+                # 7 - Sud-Ouest
+                pie.operator("view3d.walk", text="Walk Navigation (ZSQD)", icon='LOGIC')
+                                
             else:
                 box = pie.split().column()
                 row = box.row(align=True)
@@ -1129,13 +1136,13 @@ class TazTakoPieView(Menu):
                     box.operator("view3d.object_as_camera", text="Activate this Camera", icon='HAND')
                 elif bpy.context.object.mode == "TEXTURE_PAINT" or bpy.context.object.mode == "VERTEX_PAINT" or bpy.context.object.mode == "WEIGHT_PAINT":# Painting Modes
                     pie.operator("class.switchpaintingmodes", text="Tex > Vert > Weight", icon='FILE_REFRESH')# nouvelle classe
-                elif bpy.context.object.mode == "SCULPT":# Switch direct vers A4B-Retopo
-                    pie.operator("class.layoutsculpt", text="> Retopo", icon='FILE_REFRESH')# nouvelle classe
+                elif bpy.context.object.mode == "SCULPT":
+                    pie.operator("class.shortcutsculpt", text="Layout Sculpt", icon='SCULPTMODE_HLT')# nouvelle classe
                 else:
                     box = pie.split().box().column()
                     box.label("Still in development", icon='INFO')
                 # 4 - Nord
-                box = pie.split().box().column()
+                box = pie.split().column()
                 # Matcaps
                 if context.space_data.use_matcap:
                     row = box.row(align=True)
@@ -1181,13 +1188,13 @@ class TazTakoPieView(Menu):
                 row.operator("class.taztako_object_shading_flat", text="Flat")# nouvelle classe
                 row.operator("class.taztako_object_shading_smooth", text="Smooth")# nouvelle classe
                 # Gestion de la Vue 3D entre chaque switch d'atelier
-                if context.scene.Enable_3DFullAuto:
-                    box.separator()
-                    box.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is ON > OFF", icon="COLOR_GREEN")
-                if not context.scene.Enable_3DFullAuto:
-                    box.separator()
-                    box.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is OFF > ON", icon="COLOR_RED")
-                    box.operator("scene.taz_view_replace", text="Restore last 3D View")
+#                if context.scene.Enable_3DFullAuto:
+#                    box.separator()
+#                    box.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is ON > OFF", icon="COLOR_GREEN")
+#                if not context.scene.Enable_3DFullAuto:
+#                    box.separator()
+#                    box.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is OFF > ON", icon="COLOR_RED")
+                box.operator("scene.taz_view_replace", text="Restore last View")
                 # 5 - Nord-Ouest
                 pie.operator("view3d.view_selected", text="Zoom Selected", icon='VIEWZOOM')
                 # 6 - Nord-Est
@@ -1210,8 +1217,7 @@ class TazTakoPieView(Menu):
             # 3 - Sud
             pie.operator("class.switchnodal", text="Shaders > Compo > Tex.", icon='FILE_REFRESH')# nouvelle classe
             # 4 - Nord
-            box = pie.split().box().column()
-            box.label("Shading :")
+            box = pie.split().column()
             row = box.row(align=True)
             row.operator("object.shadingvariable", icon="BBOX").variable="BOUNDBOX"
             row.operator("object.shadingvariable", icon="WIRE").variable="WIREFRAME"
@@ -1326,19 +1332,17 @@ class TazTakoPieTools1(Menu):
         if bpy.context.area.type == 'VIEW_3D':
             if not bpy.context.object:
                 # 1 - Ouest
-                pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
-                # 2 - Est
                 pie.menu("INFO_MT_file_open_recent", text="Recent...", icon='OPEN_RECENT')
+                # 2 - Est
+                pie.operator("wm.link", text="Link", icon='LINK_BLEND')
                 # 3 - Sud
-                box = pie.split().box().column()
-                box.label("Import Asset :")
-                box.operator("wm.append", text="Append", icon='APPEND_BLEND')
-                box.separator()
-                box.operator("wm.link", text="Link", icon='LINK_BLEND')
-                box.separator()
-                box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
-                # 4 - Nord
                 pie.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
+                # 4 - Nord
+                pie.operator("view3d.snap_cursor_to_center", text="3D-Cursor on Origin", icon='WORLD_DATA')
+                # 5 - Nord-Ouest
+                pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
+                # 6 - Nord-Est
+                pie.operator("wm.append", text="Append", icon='APPEND_BLEND')
             
 # ---- Pie Menu Outils 1 - Vue 3D / Layout Retopology ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
 
@@ -1363,7 +1367,6 @@ class TazTakoPieTools1(Menu):
                     box.label("Tools 1 for Retopology (other modes) are still in development", icon='INFO')
                     # 2 - Est
                     
-                                                                
 # ---- Pie Menu Outils 1 - Vue 3D / Layout UV Editing ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
 
             elif bpy.context.screen == bpy.data.screens["A4B-UV Editing"]:# pb: impossible en l'état actuel de sculpter, peindre, etc, sans changer de layout
@@ -1375,30 +1378,6 @@ class TazTakoPieTools1(Menu):
                     # 1 - Ouest
                     box = pie.split().box().column()
                     box.label("Tools 1 for UV Editing (other modes) are still in development", icon='INFO')
-               
-# ---- Pie Menu Outils 1 - Vue 3D / Layout Animation ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
-
-            elif bpy.context.screen == bpy.data.screens["A4B-Animation"] :
-                if bpy.context.object.mode == 'OBJECT':
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 1 for Animation (Object-Mode) are still in development", icon='INFO')
-                else:
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 1 for Animation (other modes) are still in development", icon='INFO')
-            
-# ---- Pie Menu Outils 1 - Vue 3D / Layout FX ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
-
-            elif bpy.context.screen == bpy.data.screens["A4B-FX"]:
-                if bpy.context.object.mode == 'OBJECT':
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 1 for FX (Object-Mode) are still in development", icon='INFO')
-                else:
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 1 for FX (other modes) are still in development", icon='INFO')
 
 # ---- Pie Menu Outils 1 - Vue 3D / Layout Skinning ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
 
@@ -1429,39 +1408,29 @@ class TazTakoPieTools1(Menu):
             elif bpy.context.object.mode == 'OBJECT':
                 # 1 - Ouest
                 box = pie.split().box().column()
-                box.menu("MenuPivot", text="Pivot & 3D-Cursor...", icon='CURSOR')
-                box.separator()
                 box.operator("object.join", text="Join objects", icon='ROTATECENTER')
                 box.operator("object.wazou_separate_looseparts", text="Separate Loose Parts", icon='ROTATECOLLECTION')# nouvelle classe
-                box.separator()
-                row = box.row(align=True)
-                row.label("Duplicate :")
-                row.operator("object.duplicate_move", text="Normal", icon='UNLINKED')
-                row.operator("object.duplicate_move_linked", text="Linked", icon='LINKED')
                 # 2 - Est
                 box = pie.split().box().column()
-                box.label("Import :")
-                box.operator("wm.append", text="Append", icon='APPEND_BLEND')
+                box.label("Apply :")
+                box.operator("object.applyrotation", text="Rotation", icon='MAN_ROT')# nouvelle classe
+                box.operator("object.applyscale", text="Scale", icon='MAN_SCALE')# nouvelle classe
                 box.separator()
-                row = box.row(align=True)
-                row.operator("wm.link", text="Link", icon='LINK_BLEND')
-                row.operator("object.proxy_make", text="Proxy", icon='EMPTY_DATA')
-                box.separator()
-                box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
+                box.label("Clear :")
+                box.operator("object.location_clear", text="Location", icon='MAN_TRANS')
+                box.operator("object.rotation_clear", text="Rotation", icon='MAN_ROT')
+                box.operator("object.scale_clear", text="Scale", icon='MAN_SCALE')
                 # 3 - Sud
                 box = pie.split().box().column()
-                box.label("Select :")
-                box.operator("view3d.select_border", text="Border (B)", icon='BORDER_RECT')
-                box.operator("view3d.select_circle", text="Circle (C)", icon='INLINK')
-                box.operator("view3d.select_lasso", text="Lasso (Ctrl)", icon='BORDER_LASSO')
-                box.separator()
-                box.operator("class.selectiontakorevert", text="Reverse", icon='FILE_REFRESH')
-                box.separator()
-                box.operator("object.select_linked", text="Same Material").type='MATERIAL'
+                box.menu("INFO_MT_add", text="Add", icon='COLLAPSEMENU')
+                box.menu("MenuPivot", text="Pivot to", icon='CURSOR')
+                box.menu("MenuCursor", text="3D-Cursor", icon='CURSOR')
+                box.menu("MenuModifiers", text="Modifiers", icon='MODIFIER')
                 # 4 - Nord
                 box = pie.split().box().column()
-                box.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
-                box.menu("MenuModifiers", text="Modifiers...", icon='MODIFIER')
+                box.label("Duplicate :")
+                box.operator("object.duplicate_move", text="Normal", icon='UNLINKED')
+                box.operator("object.duplicate_move_linked", text="Linked", icon='LINKED')
 
 # ---- Pie Menu Outils 1 - Vue 3D / Mode Edit ----
 
@@ -1479,8 +1448,11 @@ class TazTakoPieTools1(Menu):
                 box.operator("transform.tosphere", text="To Sphere")
                 box.operator("object.createhole", text="Hole")#nouvelle classe (Wazou ?)
                 box.separator()
-                box.menu("INFO_MT_mesh_add", text="Add...", icon='COLLAPSEMENU')
-                box.menu("MenuModifiers", text="Modifiers...", icon='MODIFIER')
+                box.menu("INFO_MT_mesh_add", text="Add", icon='COLLAPSEMENU')
+                box.menu("MenuPivot", text="Pivot to", icon='CURSOR')
+                box.menu("MenuCursor", text="3D-Cursor", icon='CURSOR')
+                box.menu("MenuAlign", text="Align", icon='ALIGN')
+                box.menu("MenuModifiers", text="Modifiers", icon='MODIFIER')
                 # 4 - Nord
                 pie.operator("mesh.bevel", text="Bevel")
                 # 5 - Nord-Ouest
@@ -1669,20 +1641,18 @@ class TazTakoPieTools2(Menu):
         if bpy.context.area.type == 'VIEW_3D':
             if not bpy.context.object:
                 # 1 - Ouest
-                pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
-                # 2 - Est
                 pie.menu("INFO_MT_file_open_recent", text="Recent...", icon='OPEN_RECENT')
+                # 2 - Est
+                pie.operator("wm.link", text="Link", icon='LINK_BLEND')
                 # 3 - Sud
-                box = pie.split().box().column()
-                box.label("Import Asset :")
-                box.operator("wm.append", text="Append", icon='APPEND_BLEND')
-                box.separator()
-                box.operator("wm.link", text="Link", icon='LINK_BLEND')
-                box.separator()
-                box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
-                # 4 - Nord
                 pie.menu("INFO_MT_add", text="Add...", icon='COLLAPSEMENU')
-            
+                # 4 - Nord
+                pie.operator("view3d.snap_cursor_to_center", text="3D-Cursor on Origin", icon='WORLD_DATA')
+                # 5 - Nord-Ouest
+                pie.operator("wm.open_mainfile", text="Open", icon='FILE_FOLDER')
+                # 6 - Nord-Est
+                pie.operator("wm.append", text="Append", icon='APPEND_BLEND')
+                            
 # ---- Pie Menu Outils 2 - Vue 3D / Layout Retopology ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
 
             elif bpy.context.screen == bpy.data.screens["A4B-Retopology"]:# pb: impossible en l'état actuel de sculpter, peindre, etc, sans changer de layout
@@ -1706,31 +1676,7 @@ class TazTakoPieTools2(Menu):
                     # 1 - Ouest
                     box = pie.split().box().column()
                     box.label("Tools 2 for UV Editing (other modes) are still in development", icon='INFO')
-                    
-# ---- Pie Menu Outils 2 - Vue 3D / Layout Animation ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
-
-            elif bpy.context.screen == bpy.data.screens["A4B-Animation"] :
-                if bpy.context.object.mode == 'OBJECT':
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 2 for Animation (Object-Mode) are still in development", icon='INFO')
-                else:
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 2 for Animation (other modes) are still in development", icon='INFO')
             
-# ---- Pie Menu Outils 2 - Vue 3D / Layout FX ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
-
-            elif bpy.context.screen == bpy.data.screens["A4B-FX"]:
-                if bpy.context.object.mode == 'OBJECT':
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 2 for FX (Object-Mode) are still in development", icon='INFO')
-                else:
-                    # 1 - Ouest
-                    box = pie.split().box().column()
-                    box.label("Tools 2 for FX (other modes) are still in development", icon='INFO')
-
 # ---- Pie Menu Outils 2 - Vue 3D / Layout Skinning ---- mis en tête de liste pour court-circuiter les pie génériques object/edit/sculpt/paint plus bas
 
             elif bpy.context.screen == bpy.data.screens["A4B-Skinning"]:
@@ -1760,33 +1706,33 @@ class TazTakoPieTools2(Menu):
             elif bpy.context.object.mode == 'OBJECT':
                 # 1 - Ouest
                 box = pie.split().box().column()
-                row = box.row(align=True)
-                row.label("Apply :")
-                row.operator("object.applyrotation", text="Rot", icon='MAN_ROT')# nouvelle classe
-                row.operator("object.applyscale", text="Scale", icon='MAN_SCALE')# nouvelle classe
+                box.label("Select :")
+                box.operator("class.selectiontakorevert", text="Reverse", icon='FILE_REFRESH')
+                box.separator()
+                box.operator("object.select_linked", text="Same Material").type='MATERIAL'
                 # 2 - Est
                 box = pie.split().box().column()
+                box.label("Import :")
+                box.operator("wm.append", text="Append", icon='APPEND_BLEND')
+                box.separator()
                 row = box.row(align=True)
-                row.label("Clear :")
-                row.operator("object.location_clear", text="Loc", icon='MAN_TRANS')
-                row.operator("object.rotation_clear", text="Rot", icon='MAN_ROT')
-                row.operator("object.scale_clear", text="Scale", icon='MAN_SCALE')
+                row.operator("wm.link", text="Link", icon='LINK_BLEND')
+                row.operator("object.proxy_make", text="Proxy", icon='EMPTY_DATA')
+                box.separator()
+                box.operator("import_scene.obj", text=".obj", icon='MOD_WAVE')
                 # 3 - Sud
-                box = pie.split().box().column()
-                box.label("still in development", icon='INFO')
-                # 4 - Nord
-                box = pie.split().box().column()
-                box.operator("object.parent_set", text="Parenter", icon='LOCKED')
-                box.operator("object.parent_clear", text="Dé-Parenter", icon='UNLOCKED')
 
 # ---- Pie Menu Outils 2 - Vue 3D / Edit Mode ----
 
             elif bpy.context.object.mode == 'EDIT':
                 # 1 - Ouest
                 box = pie.split().box().column()
-                box.label("Tools :")
-                box.menu("MenuAlign", text="Align...", icon='ALIGN')
-                box.menu("MenuPivot", text="Pivot & 3D-Cursor...", icon='CURSOR')
+                box.label("Select :")
+                box.operator("class.selectiontakorevert", text="Reverse", icon='FILE_REFRESH')
+                box.separator()
+                row = box.row(align=True)
+                row.operator("mesh.select_more", text="More", icon='ZOOMIN')
+                row.operator("mesh.select_less", text="Less", icon='ZOOMOUT')
                 # 2 - Est
                 box = pie.split().box().column()
                 box.label("Mark Edges :")
@@ -1829,20 +1775,9 @@ class TazTakoPieTools2(Menu):
                     box.label("No applicable on vertices")
                 # 4 - Nord
                 box = pie.split().box().column()
-                box.label("Select :")
-                box.operator("view3d.select_border", text="Border (B)", icon='BORDER_RECT')
-                box.operator("view3d.select_circle", text="Circle (C)", icon='INLINK')
-                box.operator("view3d.select_lasso", text="Lasso (Ctrl)", icon='BORDER_LASSO')
-                box.separator()
-                box.operator("class.selectiontakorevert", text="Reverse", icon='FILE_REFRESH')
-                box.separator()
-                row = box.row(align=True)
-                row.operator("mesh.select_more", text="More", icon='ZOOMIN')
-                row.operator("mesh.select_less", text="Less", icon='ZOOMOUT')
-                box.separator()
-                row = box.row(align=True)
-                row.operator("mesh.loop_multi_select", text="Loop").ring=False
-                row.operator("mesh.loop_multi_select", text="Ring").ring=True
+                box.label("Select Edge :")
+                box.operator("mesh.loop_multi_select", text="Loop").ring=False
+                box.operator("mesh.loop_multi_select", text="Ring").ring=True
                 
 # ---- Pie Menu Outils 2 - Vue 3D / Mode Sculpt ----
 
@@ -1899,7 +1834,7 @@ class TazTakoPieTools2(Menu):
             # 1 - Ouest
             box = pie.split().box().column()
             box.label("Tools 2 for Text Editor are still in development", icon='INFO')
-
+            
 # ---- Pie Menu Outils 2 - Layout Video Editing ----
 
         elif bpy.context.area.type == 'SEQUENCE_EDITOR':
@@ -1911,30 +1846,32 @@ class TazTakoPieTools2(Menu):
 #                                                       Menus                                                                        #
 ######################################################################################################################################
 
-# Pivot & 3D-Cursor
+# Menu Move Pivot
 class MenuPivot(bpy.types.Menu):
     bl_label = "Pivot"
 
     def draw(self, context):
         layout = self.layout
 
-        layout.label("Move Pivot to :")
-        layout.operator("object.pivotobottom", text="Bottom", icon='NLA_PUSHDOWN')# nouvelle classe
         layout.operator("object.pivot2cursor", text="3D-Cursor", icon='CURSOR')# nouvelle classe
         layout.operator("object.pivot2geometry", text="Mesh", icon='ROTATE')# nouvelle classe
         layout.operator("object.pivot2selection", text="Selected", icon='EDIT')# nouvelle classe
-        layout.separator()
-        layout.label("Move 3D Cursor to :")
-        if not bpy.context.object:
-            layout.operator("view3d.snap_cursor_to_center", text="Origin (0/0/0)", icon='WORLD_DATA')
-        else:
-            layout.operator("view3d.snap_cursor_to_selected", text="Selected", icon='VIEW3D')
-            layout.operator("view3d.snap_cursor_to_active", text="Active", icon='OBJECT_DATA')
-            layout.operator("view3d.snap_cursor_to_center", text="Origin (0/0/0)", icon='WORLD_DATA')
-            layout.separator()
-            layout.operator("view3d.snap_selected_to_cursor", text="Move Selection on 3D-Cursor", icon='ANIM_DATA')
+        
+# Menu 3D-Cursor
+class MenuCursor(bpy.types.Menu):
+    bl_label = "3D-Cursor"
 
-# Align
+    def draw(self, context):
+        layout = self.layout
+
+        layout.label("Move Cursor to :")
+        layout.operator("view3d.snap_cursor_to_selected", text="Selected", icon='VIEW3D')
+        layout.operator("view3d.snap_cursor_to_active", text="Active", icon='OBJECT_DATA')
+        layout.operator("view3d.snap_cursor_to_center", text="Origin (0/0/0)", icon='WORLD_DATA')
+        layout.separator()
+        layout.operator("view3d.snap_selected_to_cursor", text="Move Selection on Cursor", icon='ANIM_DATA')
+
+# Menu Align
 class MenuAlign(bpy.types.Menu):
     bl_label = "Align"
 
@@ -1959,7 +1896,7 @@ class MenuAlign(bpy.types.Menu):
         layout.operator("alignz.bottom", text="to Bottom")# nouvelle classe (Wazou)
         layout.operator("alignz.top", text="to Top")# nouvelle classe (Wazou)
                     
-# Shaders
+# Menu Shaders
 class MenuShaders(bpy.types.Menu):
     bl_label = "Shaders"
 
@@ -1984,7 +1921,7 @@ class MenuShaders(bpy.types.Menu):
         layout.operator("node.add_node", text="Hold Out (crée un alpha)", icon='MATCAP_24').type='ShaderNodeHoldout'
         layout.operator("node.add_node", text="Background", icon='WORLD').type='ShaderNodeBackground'
         
-# Input-Output / Vector / Converter / Color
+# Menu Input-Output / Vector / Converter / Color
 class MenuDiversNode(bpy.types.Menu):
     bl_label = "Input-Output / Vector / Converter / Color"
 
@@ -2010,7 +1947,7 @@ class MenuDiversNode(bpy.types.Menu):
         layout.operator("node.add_node", text="Hue Saturation", icon='RNDCURVE').type='ShaderNodeHueSaturation'
         layout.operator("node.add_node", text="Bright Contrast", icon='RNDCURVE').type='ShaderNodeBrightContrast'
         
-# Textures
+# Menu Textures
 class MenuTextures(bpy.types.Menu):
     bl_label = "Textures"
 
@@ -2029,7 +1966,7 @@ class MenuTextures(bpy.types.Menu):
         layout.operator("node.add_node", text="Musgrave").type='ShaderNodeTexMusgrave'
         layout.operator("node.add_node", text="Sky").type='ShaderNodeTexSky'
                                 
-# Compositing
+# Menu Compositing
 class MenuCompositing(bpy.types.Menu):
     bl_label = "Compositing"
 
@@ -2120,7 +2057,7 @@ class MenuCompositing(bpy.types.Menu):
         layout.operator("node.add_node", text="YUVA").type='CompositorNodeSepYUVA'
         layout.operator("node.add_node", text="YCbCrA").type='CompositorNodeSepYCCA'
         
-# Modifiers
+# Menu Modifiers
 class MenuModifiers(bpy.types.Menu):
     bl_label = "Modifiers"
 
