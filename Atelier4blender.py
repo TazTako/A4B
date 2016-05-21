@@ -674,7 +674,8 @@ class ClassLayoutScene(bpy.types.Operator):
         if bpy.context.area.type == 'VIEW_3D':
             bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-Scene"]
-        bpy.ops.object.mode_set(mode="OBJECT")
+        if bpy.context.object:
+            bpy.ops.object.mode_set(mode="OBJECT")
         if context.scene.Enable_3DFullAuto:
             bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}    
@@ -690,7 +691,8 @@ class ClassLayoutNodal(bpy.types.Operator):
         if bpy.context.area.type == 'VIEW_3D':
             bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-Nodal"]
-        bpy.ops.object.mode_set(mode="OBJECT")
+        if bpy.context.object:
+            bpy.ops.object.mode_set(mode="OBJECT")
         if context.scene.Enable_3DFullAuto:
             bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}    
@@ -706,7 +708,8 @@ class ClassLayoutNodal(bpy.types.Operator):
         if bpy.context.area.type == 'VIEW_3D':
             bpy.ops.scene.taz_view_store()
         bpy.context.window.screen = bpy.data.screens["A4B-UV Editing"]
-        bpy.ops.object.mode_set(mode="EDIT")
+        if bpy.context.object:
+            bpy.ops.object.mode_set(mode="EDIT")
         if context.scene.Enable_3DFullAuto:
             bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
@@ -768,21 +771,24 @@ class ClassLayoutEdit(bpy.types.Operator):
             if bpy.context.area.type == 'VIEW_3D':
                 bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Retopology"]
-            bpy.ops.object.mode_set(mode="EDIT")
+            if bpy.context.object:
+                bpy.ops.object.mode_set(mode="EDIT")
             if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
         elif bpy.context.screen == bpy.data.screens["A4B-Modelisation"] and bpy.context.object.mode == "SCULPT":
             if bpy.context.area.type == 'VIEW_3D':
                 bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Retopology"]
-            bpy.ops.object.mode_set(mode="EDIT")
+            if bpy.context.object:
+                bpy.ops.object.mode_set(mode="EDIT")
             if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
         else:
             if bpy.context.area.type == 'VIEW_3D':
                 bpy.ops.scene.taz_view_store()
             bpy.context.window.screen = bpy.data.screens["A4B-Modelisation"]
-            bpy.ops.object.mode_set(mode="EDIT")
+            if bpy.context.object:
+                bpy.ops.object.mode_set(mode="EDIT")
             if context.scene.Enable_3DFullAuto:
                 bpy.ops.scene.taz_view_replace()
         return {'FINISHED'}
@@ -1025,7 +1031,7 @@ class TazTakoPieLayout(Menu):
             # 3 - Sud
             pie.operator("class.layoutvse", text="Video Edit > Motion Track", icon='SEQ_SEQUENCER')
             # 4 - Nord
-            pie.operator("class.layoutnodal", text="Nodal", icon='MATERIAL')
+            pie.separator()
             # 5 - Nord-Ouest
             pie.separator()
             # 6 - Nord-Est
@@ -1033,7 +1039,6 @@ class TazTakoPieLayout(Menu):
             # 7 - Sud-Ouest
             pie.operator("class.layoutscripting", text="Script", icon='CONSOLE')
             # 8 - Sud-Est
-            
         else:
             # 1 - Ouest
             pie.operator("class.layoutscene", text="Scene", icon='WORLD_DATA')
