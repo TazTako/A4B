@@ -6,7 +6,7 @@
 bl_info = {
     "name": "Atelier 4 Blender (A4B)",
     "author": "TazTako (Olivier FAVRE), Lapineige, Pitiwazou (Cedric LEPILLER), Matpi",
-    "version": (0, 3 , 6),
+    "version": (0, 3 , 7),
     "blender": (2, 72, 0),
     "description": "Atelier 4 Blender",
     "warning": "This addon is still in development.",
@@ -37,6 +37,7 @@ class TazTakoClicUserPrefs(bpy.types.AddonPreferences):
     bpy.types.Scene.Enable_URL = bpy.props.BoolProperty(default=False)
     bpy.types.Scene.Enable_Prefs = bpy.props.BoolProperty(default=False)
     bpy.types.Scene.Enable_3DFullAuto = bpy.props.BoolProperty(default=False)
+    bpy.types.Scene.Enable_NumPadViews = bpy.props.BoolProperty(default=False)
     
     def draw(self, context):
         layout = self.layout
@@ -76,6 +77,11 @@ class TazTakoClicUserPrefs(bpy.types.AddonPreferences):
                 layout.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is OFF > switch to ON", icon="COLOR_RED")
             if context.scene.Enable_3DFullAuto:
                 layout.prop(context.scene, "Enable_3DFullAuto", text="Auto3D-View is ON > switch to OFF", icon="COLOR_GREEN")
+            layout.label(text="If you don't have any NumPad on your keyboard, you can activate this option to have acces to shortcuts in your pie.")
+            if not context.scene.Enable_NumPadViews:
+                layout.prop(context.scene, "Enable_3DFullAuto", text="NumPad Views is OFF > switch to ON", icon="COLOR_RED")
+            if context.scene.Enable_NumPadViews:
+                layout.prop(context.scene, "Enable_3DFullAuto", text="NumPad Views is ON > switch to OFF", icon="COLOR_GREEN")
                                    
 ######################################################################################################################################
 #                                                     Classes pour la vue 3D (pistiwique)                                            #
@@ -1096,6 +1102,23 @@ class TazTakoPieView(Menu):
                 row.operator("object.shadingvariable", icon="POTATO").variable="TEXTURED"
                 row.operator("object.shadingvariable", icon="MATERIAL").variable="MATERIAL"
                 row.operator("object.shadingvariable", icon="SMOOTH").variable="RENDERED"
+                # NumPad Views
+                if context.scene.Enable_NumPadViews:
+                    box.prop(context.scene, "Enable_NumPadViews", text="NumPad Views", icon="TRIA_DOWN")
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Cam", icon="CAMERA_DATA").type="CAMERA"
+                    row.operator("view3d.view_persportho", text="Persp / Ortho")
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Top").type="TOP"
+                    row.operator("view3d.viewnumpad", text="Bottom").type="BOTTOM"
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Left").type="LEFT"
+                    row.operator("view3d.viewnumpad", text="Right").type="RIGHT"
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Front").type="FRONT"
+                    row.operator("view3d.viewnumpad", text="Back").type="BACK"
+                if not context.scene.Enable_NumPadViews:
+                    box.prop(context.scene, "Enable_NumPadViews", text="NumPad Views", icon="TRIA_DOWN")
                 box.operator("scene.taz_view_replace", text="Restore last View")
                 # 5 - Nord-Ouest
                 pie.separator()
@@ -1132,13 +1155,13 @@ class TazTakoPieView(Menu):
                     box = pie.split().box().column()
                     box.label("Camera :")
                     if context.space_data.lock_camera:
-                        box.prop(context.space_data, "lock_camera", icon = "LOCKED")
+                        box.prop(context.space_data, "lock_camera", text="Un-lock", icon = "LOCKED")
                     else:
-                        box.prop(context.space_data, "lock_camera", icon = "UNLOCKED")
-                    box.operator("view3d.camera_to_view_selected", text="Cam. to Selected", icon='CAMERA_DATA')
-                    box.operator("view3d.camera_to_view", text="View to Cam.", icon = 'VISIBLE_IPO_ON')
-                    box.operator("object.track_set", text="Cam. track to object (select 1st Cam, 2nd Object)", icon='CAMERA_DATA').type='TRACKTO'
-                    box.operator("view3d.object_as_camera", text="Activate this Camera", icon='HAND')
+                        box.prop(context.space_data, "lock_camera", text="Lock", icon = "UNLOCKED")
+                    box.operator("view3d.camera_to_view_selected", text="Show Selected in Cam", icon='CAMERA_DATA')
+                    box.operator("view3d.camera_to_view", text="Copy View to Cam", icon = 'VISIBLE_IPO_ON')
+                    box.operator("object.track_set", text="Track object (select 1st Cam, 2nd Object)", icon='CAMERA_DATA').type='TRACKTO'
+                    box.operator("view3d.object_as_camera", text="Activate this Cam", icon='HAND')
                 elif bpy.context.object.mode == "TEXTURE_PAINT" or bpy.context.object.mode == "VERTEX_PAINT" or bpy.context.object.mode == "WEIGHT_PAINT":# Painting Modes
                     pie.operator("class.switchpaintingmodes", text="Tex > Vert > Weight", icon='FILE_REFRESH')# nouvelle classe
                 elif bpy.context.object.mode == "SCULPT":
@@ -1178,7 +1201,6 @@ class TazTakoPieView(Menu):
                     row.prop_enum(bpy.context.space_data, "matcap_icon", "22", text="", icon="MATCAP_22")
                     row.prop_enum(bpy.context.space_data, "matcap_icon", "23", text="", icon="MATCAP_23")
                     row.prop_enum(bpy.context.space_data, "matcap_icon", "24", text="", icon="MATCAP_24")
-                # Shading Flat / Smooth & Enable Matcaps
                 if bpy.context.object.mode == 'OBJECT' or bpy.context.object.mode == 'EDIT' or bpy.context.object.mode == 'SCULPT' or bpy.context.object.mode == 'POSE' or bpy.context.object.mode == 'PARTICLE_EDIT':
                     box.prop(context.space_data, "use_matcap", text="MatCaps", icon='TRIA_UP')
                 # Shading
@@ -1190,8 +1212,26 @@ class TazTakoPieView(Menu):
                 row.operator("object.shadingvariable", icon="MATERIAL").variable="MATERIAL"
                 row.operator("object.shadingvariable", icon="SMOOTH").variable="RENDERED"
                 row = box.row(align=True)
+                # Shading Flat / Smooth
                 row.operator("class.taztako_object_shading_flat", text="Flat")# nouvelle classe
                 row.operator("class.taztako_object_shading_smooth", text="Smooth")# nouvelle classe
+                # NumPad Views
+                if context.scene.Enable_NumPadViews:
+                    box.prop(context.scene, "Enable_NumPadViews", text="NumPad Views", icon="TRIA_DOWN")
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Cam", icon="CAMERA_DATA").type="CAMERA"
+                    row.operator("view3d.view_persportho", text="Persp / Ortho")
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Top").type="TOP"
+                    row.operator("view3d.viewnumpad", text="Bottom").type="BOTTOM"
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Left").type="LEFT"
+                    row.operator("view3d.viewnumpad", text="Right").type="RIGHT"
+                    row = box.row(align=True)
+                    row.operator("view3d.viewnumpad", text="Front").type="FRONT"
+                    row.operator("view3d.viewnumpad", text="Back").type="BACK"
+                if not context.scene.Enable_NumPadViews:
+                    box.prop(context.scene, "Enable_NumPadViews", text="NumPad Views", icon="TRIA_DOWN")
                 # Gestion de la Vue 3D entre chaque switch d'atelier
 #                if context.scene.Enable_3DFullAuto:
 #                    box.separator()
@@ -1203,7 +1243,7 @@ class TazTakoPieView(Menu):
                 # 5 - Nord-Ouest
                 pie.operator("view3d.view_selected", text="Zoom Selected", icon='VIEWZOOM')
                 # 6 - Nord-Est
-                pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
+                pie.operator("wm.window_fullscreen_toggle", text="Full Screen", icon="FULLSCREEN_ENTER")
                 # 7 - Sud-Ouest
                 pie.operator("view3d.walk", text="Walk Navigation (ZSQD)", icon='LOGIC')
                 # 8 - Sud-Est
@@ -1244,7 +1284,7 @@ class TazTakoPieView(Menu):
             row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')# nouvelle classe (Lapineige)
             row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
             # 2 - Est
-            pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
+            pie.operator("wm.window_fullscreen_toggle", text="Full Screen", icon="FULLSCREEN_ENTER")
             # 3 - Sud
             pie.operator("image.view_all", text="Fit Image", icon='IMAGE_COL').fit_view=True
             # 4 - Nord
@@ -1262,7 +1302,7 @@ class TazTakoPieView(Menu):
             row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')
             row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
             # 2 - Est
-            pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
+            pie.operator("wm.window_fullscreen_toggle", text="Full Screen", icon="FULLSCREEN_ENTER")
             # 3 - Sud
             pie.operator("class.switchoutlinerproperties", text="> Properties", icon='FILE_REFRESH')# nouvelle classe
             # 4 - Nord
@@ -1277,7 +1317,7 @@ class TazTakoPieView(Menu):
             row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')
             row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
             # 2 - Est
-            pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
+            pie.operator("wm.window_fullscreen_toggle", text="Full Screen", icon="FULLSCREEN_ENTER")
             # 3 - Sud
             pie.operator("class.switchoutlinerproperties", text="> Outliner", icon='FILE_REFRESH')# nouvelle classe
             
@@ -1302,7 +1342,7 @@ class TazTakoPieView(Menu):
             row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')
             row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
             # 2 - Est
-            pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
+            pie.operator("wm.window_fullscreen_toggle", text="Full Screen", icon="FULLSCREEN_ENTER")
             # 3 - Sud
             pie.operator("text.save", text="Save Script", icon='SAVE_COPY')
             # 4 - Nord
@@ -1317,7 +1357,7 @@ class TazTakoPieView(Menu):
             row.operator("file.lapi_save", text="Update .blend (+ 1)", icon='RECOVER_LAST')
             row.operator("wm.save_mainfile", text="Save", icon='FILE_TICK')
             # 2 - Est
-            pie.operator("wm.window_fullscreen_toggle", text="Blender Full Screen", icon="FULLSCREEN_ENTER")
+            pie.operator("wm.window_fullscreen_toggle", text="Full Screen", icon="FULLSCREEN_ENTER")
                                                 
 ######################################################################################################################################
 #                                                       Pie Menu - Outils 1 (bouton 4)                                               #
@@ -1858,10 +1898,10 @@ class MenuPivot(bpy.types.Menu):
     def draw(self, context):
         layout = self.layout
 
+        layout.operator("object.pivot2selection", text="Selected", icon='EDIT')# nouvelle classe
         layout.operator("object.pivot2cursor", text="3D-Cursor", icon='CURSOR')# nouvelle classe
         layout.operator("object.pivot2geometry", text="Mesh", icon='ROTATE')# nouvelle classe
-        layout.operator("object.pivot2selection", text="Selected", icon='EDIT')# nouvelle classe
-        
+                
 # Menu 3D-Cursor
 class MenuCursor(bpy.types.Menu):
     bl_label = "3D-Cursor"
@@ -1870,9 +1910,9 @@ class MenuCursor(bpy.types.Menu):
         layout = self.layout
 
         layout.label("Move Cursor to :")
+        layout.operator("view3d.snap_cursor_to_center", text="Origin (0/0/0)", icon='WORLD_DATA')
         layout.operator("view3d.snap_cursor_to_selected", text="Selected", icon='VIEW3D')
         layout.operator("view3d.snap_cursor_to_active", text="Active", icon='OBJECT_DATA')
-        layout.operator("view3d.snap_cursor_to_center", text="Origin (0/0/0)", icon='WORLD_DATA')
         layout.separator()
         layout.operator("view3d.snap_selected_to_cursor", text="Move Selection on Cursor", icon='ANIM_DATA')
 
